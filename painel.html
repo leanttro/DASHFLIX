@@ -3,71 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DASHFLIX Editor - Painel Administrativo</title>
+    <title>DASHFLIX - Painel Editor (Wix Mode)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <style> [x-cloak] { display: none !important; } </style>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
 </head>
-<body class="bg-gray-100 text-gray-900 antialiased" x-data="editor()" x-init="init()" x-cloak>
+<body class="bg-gray-100 text-gray-900 antialiased" x-data="dashflixEditor()" x-init="init()" x-cloak>
+
     <div class="min-h-screen flex">
         
-        <nav class="w-64 bg-gray-900 p-6 flex flex-col text-gray-300 border-r border-gray-800">
+        <nav class="w-64 bg-gray-900 p-6 flex flex-col border-r border-gray-800 text-gray-300">
             <h1 class="text-xl font-extrabold text-white mb-10 tracking-tighter">Dashflix <span class="text-red-500">Editor</span></h1>
-            <a href="index.html" class="bg-gray-800 text-white p-3 rounded-lg text-center font-bold hover:bg-gray-700 transition">Ver Dashboard</a>
-            <div class="mt-auto text-xs text-gray-600">Powered by Directus & Flask</div>
+            <a href="#" class="bg-gray-800 text-white p-3 rounded-lg font-medium mb-2">Design Visual</a>
+            <a href="index.html" class="hover:bg-gray-800 p-3 rounded-lg font-medium mb-2">Ver Dashboard</a>
+            <div class="mt-auto text-xs text-gray-600">Powered by Directus API</div>
         </nav>
 
         <main class="flex-1 p-10 h-screen overflow-y-auto">
             <header class="flex justify-between items-center mb-10 pb-4 border-b border-gray-200">
-                <h2 class="text-3xl font-bold tracking-tight text-gray-800">Configurações Wix Mode</h2>
+                <h2 class="text-3xl font-bold tracking-tight text-gray-800">Configurações do Layout (Wix Mode)</h2>
                 <div class="flex gap-4">
                     <button @click="triggerETL()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-md transition" :disabled="loadingETL">
                         <span x-show="!loadingETL">Sincronizar Kaggle</span>
-                        <span x-show="loadingETL">Processando...</span>
+                        <span x-show="loadingETL" class="animate-pulse">Processando...</span>
                     </button>
-                    <button @click="save()" class="bg-red-600 text-white px-8 py-2 rounded-lg font-bold hover:bg-red-700 shadow-lg transition">Salvar Tudo</button>
+                    <div class="flex flex-col items-end">
+                        <button @click="saveConfigs()" class="bg-red-600 text-white px-8 py-2 rounded-lg font-bold hover:bg-red-700 shadow-lg transition">
+                            Salvar Alterações
+                        </button>
+                        <span x-show="saving" class="text-xs text-gray-500 mt-1 animate-pulse">Salvando dados...</span>
+                    </div>
                 </div>
             </header>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                 
                 <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="text-xl font-bold mb-6 border-b pb-2 text-red-600">Visual Geral</h3>
-                    <div class="mb-4">
-                        <label class="block text-sm font-bold mb-2 text-gray-600">Tema</label>
-                        <select x-model="config.tema" class="w-full p-3 border rounded-lg bg-gray-50"><option value="dark">Escuro (Netflix Style)</option><option value="light">Claro (Corporate)</option></select>
+                    <h3 class="text-xl font-semibold mb-6 text-red-600 border-b pb-2">Identidade Visual</h3>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-600 mb-2">Tema Base</label>
+                        <select x-model="config.tema" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50">
+                            <option value="dark">Escuro (Netflix Style)</option>
+                            <option value="light">Claro (Corporate)</option>
+                        </select>
                     </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-bold mb-2 text-gray-600">Fonte</label>
-                        <select x-model="config.fonte" class="w-full p-3 border rounded-lg bg-gray-50"><option value="Poppins">Poppins</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option></select>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-bold mb-2 text-gray-600">Cor Primária</label>
-                            <input type="color" x-model="config.cor_primaria" class="w-full h-12 cursor-pointer rounded border-0">
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-600 mb-2">Cor Primária (Destaques e Gráficos)</label>
+                        <div class="flex gap-3 items-center">
+                            <input type="color" x-model="config.cor_primaria" class="h-12 w-20 border-0 rounded-lg cursor-pointer">
+                            <input type="text" x-model="config.cor_primaria" class="flex-1 p-3 border border-gray-300 rounded-lg font-mono text-sm bg-gray-50">
                         </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-2 text-gray-600">Fundo (Dark)</label>
-                            <input type="color" x-model="config.cor_fundo" class="w-full h-12 cursor-pointer rounded border-0">
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-600 mb-2">Cor de Fundo (se Tema Dark)</label>
+                        <div class="flex gap-3 items-center">
+                            <input type="color" x-model="config.cor_fundo" class="h-12 w-20 border-0 rounded-lg cursor-pointer">
+                            <input type="text" x-model="config.cor_fundo" class="flex-1 p-3 border border-gray-300 rounded-lg font-mono text-sm bg-gray-50">
                         </div>
                     </div>
                 </div>
 
                 <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="text-xl font-bold mb-6 border-b pb-2 text-red-600">Mídia de Destaque</h3>
-                    <div class="mb-4">
-                        <label class="block text-sm font-bold mb-2 text-gray-600">URL da Mídia (Imagem ou Vídeo MP4)</label>
-                        <input type="text" x-model="config.midia_url" class="w-full p-3 border rounded-lg font-mono text-sm bg-gray-50" placeholder="https://exemplo.com/media.mp4">
+                    <h3 class="text-xl font-semibold mb-6 text-red-600 border-b pb-2">Tipografia e Mídia</h3>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-600 mb-2">Fonte Principal</label>
+                        <select x-model="config.fonte" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50">
+                            <option value="Poppins">Poppins (Padrão)</option>
+                            <option value="Inter">Inter (Clean)</option>
+                            <option value="Roboto">Roboto (Classic)</option>
+                        </select>
                     </div>
-                    <label class="block text-sm font-bold mb-2 text-gray-600">Tipo de Mídia</label>
-                    <select x-model="config.midia_tipo" class="w-full p-3 border rounded-lg bg-gray-50"><option value="image">Imagem</option><option value="video">Vídeo</option></select>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-600 mb-2">URL da Mídia (Imagem ou Vídeo MP4)</label>
+                        <input type="text" x-model="config.midia_url" class="w-full p-3 border border-gray-300 rounded-lg font-mono text-sm bg-gray-50" placeholder="https://exemplo.com/video.mp4">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-2">Tipo de Mídia</label>
+                            <select x-model="config.midia_tipo" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50">
+                                <option value="image">Imagem</option>
+                                <option value="video">Vídeo</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-2">Idioma Padrão</label>
+                            <select x-model="config.idioma_padrao" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50">
+                                <option value="pt">Português</option>
+                                <option value="en">Inglês</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
             </div>
 
             <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-8">
                 <div class="flex justify-between items-center mb-6 border-b pb-4">
-                    <h3 class="text-xl font-bold text-gray-800">Construtor de Gráficos Dinâmicos (JSON)</h3>
+                    <h3 class="text-xl font-semibold text-gray-800">Construtor de Gráficos Dinâmicos (JSON)</h3>
                     <button @click="addChart()" class="bg-black text-white px-5 py-2 rounded-lg font-bold hover:bg-gray-800 transition shadow">+ Adicionar Gráfico</button>
                 </div>
                 
@@ -82,32 +122,34 @@
                             <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Subtítulo</label>
                             <input type="text" x-model="g.sub" class="w-full p-2 border rounded mb-4 text-sm" placeholder="Breve descrição">
                             
-                            <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Fonte de Dados</label>
-                            <select x-model="g.endpoint" class="w-full p-2 border rounded mb-4 text-sm bg-white"><option value="/top-paises">Top 10 Países</option><option value="/lancamentos-ano">Evolução por Ano</option></select>
+                            <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Fonte de Dados (Endpoint Flask)</label>
+                            <select x-model="g.endpoint" class="w-full p-2 border rounded mb-4 text-sm bg-white">
+                                <option value="/top-paises">Top 10 Países</option>
+                                <option value="/lancamentos-ano">Evolução por Ano</option>
+                            </select>
                             
                             <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Visual e Cor</label>
                             <div class="flex gap-2">
                                 <select x-model="g.tipo" class="flex-1 p-2 border rounded text-sm bg-white">
-                                    <option value="bar">Colunas Verticais</option>
-                                    <option value="bar_horizontal">Barras Horizontais</option>
-                                    <option value="line">Linha Simples</option>
-                                    <option value="area">Linha com Área</option>
-                                    <option value="pie">Gráfico de Pizza</option>
-                                    <option value="doughnut">Gráfico de Rosca</option>
+                                    <option value="bar">Colunas</option>
+                                    <option value="bar_horizontal">Barras</option>
+                                    <option value="line">Linha</option>
+                                    <option value="area">Área</option>
+                                    <option value="pie">Pizza</option>
+                                    <option value="doughnut">Rosca</option>
                                 </select>
                                 <input type="color" x-model="g.cor" class="w-14 h-10 cursor-pointer rounded border-0">
                             </div>
                         </div>
                     </template>
                 </div>
-                <div x-show="config.graficos.length === 0" class="text-center py-10 text-gray-400 italic bg-gray-50 rounded-xl border-2 border-dashed mt-4">Nenhum gráfico criado. Clique em adicionar para começar.</div>
             </div>
 
             <section class="mt-10 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-                <h3 class="text-xl font-bold mb-6 text-gray-800">Dados Brutos (Kaggle via Flask)</h3>
+                <h3 class="text-xl font-semibold mb-6 text-gray-700">Visualização de Dados Raw (Kaggle via Flask)</h3>
                 <div class="overflow-x-auto h-64 border border-gray-200 rounded-lg">
-                    <table class="w-full text-sm text-left text-gray-600">
-                        <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200 sticky top-0">
+                    <table class="w-full text-sm text-left text-gray-700">
+                        <thead class="text-xs text-gray-500 uppercase bg-gray-100 border-b border-gray-200 sticky top-0">
                             <tr>
                                 <th class="px-4 py-3">ID</th>
                                 <th class="px-4 py-3">Tipo</th>
@@ -117,7 +159,7 @@
                         </thead>
                         <tbody>
                             <template x-for="item in rawData" :key="item.show_id">
-                                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                <tr class="border-b border-gray-200 hover:bg-gray-50">
                                     <td class="px-4 py-3 font-mono text-gray-400" x-text="item.show_id"></td>
                                     <td class="px-4 py-3" x-text="item.type"></td>
                                     <td class="px-4 py-3 font-medium text-gray-900" x-text="item.title"></td>
@@ -128,89 +170,101 @@
                     </table>
                 </div>
             </section>
-
         </main>
     </div>
 
     <script>
-        // DOMÍNIOS ATUALIZADOS
-        const DOMINIO_API_FLASK = "https://api-dashflix.leanttro.com/api";
+        // DOMÍNIOS EXTRAÍDOS DOS SEUS PRINTS
+        const DIRECTUS_API_URL = 'https://api.leanttro.com'; 
+        const FLASK_API_URL = 'https://api-dashflix.leanttro.com/api';
+        const CONFIG_ITEM_ID = 1;
 
-        function editor() {
+        function dashflixEditor() {
             return {
                 saving: false,
                 loadingETL: false,
-                config: { 
-                    tema: 'dark', 
-                    cor_primaria: '#E50914', 
-                    cor_fundo: '#000000', 
-                    fonte: 'Poppins', 
-                    midia_url: '', 
-                    midia_tipo: 'image', 
-                    graficos: [] 
+                config: {
+                    tema: 'dark',
+                    cor_primaria: '#E50914',
+                    cor_fundo: '#000000',
+                    fonte: 'Poppins',
+                    idioma_padrao: 'pt',
+                    midia_url: '',
+                    midia_tipo: 'image',
+                    graficos: []
                 },
                 rawData: [],
 
                 async init() {
-                    try {
-                        const r = await fetch(`${DOMINIO_API_FLASK}/config`);
-                        const data = await r.json();
-                        if (data && !data.erro) {
-                            this.config = Object.assign(this.config, data);
-                            if (!Array.isArray(this.config.graficos)) this.config.graficos = [];
-                        } else {
-                            console.error("Erro ao carregar configurações:", data);
-                        }
-                    } catch (e) { console.error("Erro Flask Config Fetch:", e); }
-                    this.loadRaw();
+                    await this.loadConfigs();
+                    await this.loadRawData();
                 },
 
-                addChart() { 
+                async loadConfigs() {
+                    try {
+                        const response = await fetch(`${DIRECTUS_API_URL}/items/configuracoes_dashflix/${CONFIG_ITEM_ID}`);
+                        const { data } = await response.json();
+                        if (data) {
+                            this.config = {
+                                tema: data.tema || 'dark',
+                                cor_primaria: data.cor_primaria || '#E50914',
+                                cor_fundo: data.cor_fundo || '#000000',
+                                fonte: data.fonte || 'Poppins',
+                                idioma_padrao: data.idioma_padrao || 'pt',
+                                midia_url: data.midia_url || '',
+                                midia_tipo: data.midia_tipo || 'image',
+                                graficos: Array.isArray(data.graficos) ? data.graficos : []
+                            };
+                        }
+                    } catch (e) { console.error("Falha ao carregar Directus", e); }
+                },
+
+                addChart() {
                     this.config.graficos.push({ 
                         titulo: 'Novo Gráfico', 
                         sub: 'Descrição curta', 
                         endpoint: '/top-paises', 
                         tipo: 'bar', 
                         cor: this.config.cor_primaria 
-                    }); 
-                },
-
-                async loadRaw() {
-                    try {
-                        const r = await fetch(`${DOMINIO_API_FLASK}/titulos?limit=20`);
-                        this.rawData = await r.json();
-                    } catch (e) { console.error("Erro Flask Raw Fetch:", e); }
+                    });
                 },
 
                 async triggerETL() {
                     this.loadingETL = true;
                     try {
-                        const r = await fetch(`${DOMINIO_API_FLASK}/run-etl`, { method: 'POST' });
+                        const r = await fetch(`${FLASK_API_URL}/run-etl`, { method: 'POST' });
                         const res = await r.json();
                         alert(res.mensagem);
                     } catch (e) { 
-                        console.error("Erro ETL:", e);
-                        alert('Erro ao iniciar sincronização. Verifique a conexão e o certificado SSL.'); 
+                        alert('Erro ao iniciar sincronização. Verifique o console.'); 
+                        console.error(e);
                     }
                     this.loadingETL = false;
                 },
 
-                async save() {
+                async saveConfigs() {
                     this.saving = true;
                     try {
-                        const response = await fetch(`${DOMINIO_API_FLASK}/config`, { 
-                            method: 'PATCH', 
-                            headers: { 'Content-Type': 'application/json' }, 
-                            body: JSON.stringify(this.config) 
+                        const response = await fetch(`${DIRECTUS_API_URL}/items/configuracoes_dashflix/${CONFIG_ITEM_ID}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.config)
                         });
-                        const result = await response.json();
-                        if(response.ok && result.sucesso) alert('Configurações Salvas com Sucesso!');
-                        else alert('Erro ao salvar no Directus: ' + (result.erro || ''));
-                    } catch (e) { 
-                        console.error("Erro ao salvar:", e);
-                        alert('Erro de rede ao salvar.'); 
-                    }
+                        
+                        if(response.ok) {
+                            alert('Configurações salvas com sucesso!');
+                        } else {
+                            alert('Erro ao salvar. Verifique as permissões públicas no Directus.');
+                        }
+                    } catch (e) { console.error(e); alert('Erro de rede.'); }
                     this.saving = false;
+                },
+
+                async loadRawData() {
+                    try {
+                        const response = await fetch(`${FLASK_API_URL}/titulos?limit=20`);
+                        this.rawData = await response.json();
+                    } catch (e) { console.error("Falha Flask", e); }
                 }
             }
         }
