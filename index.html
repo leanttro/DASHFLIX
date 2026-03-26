@@ -59,7 +59,6 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
 
-        /* Scrollbar customizada para o clima Netflix */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #141414; }
         ::-webkit-scrollbar-thumb { background: #E50914; border-radius: 10px; }
@@ -93,7 +92,7 @@
             </p>
             
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8" id="summary-container">
-                </div>
+            </div>
         </section>
 
         <section id="midia-section" class="mb-20 opacity-0 y-20-anim hidden">
@@ -103,7 +102,7 @@
         </section>
 
         <section id="graficos-dinamicos" class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
-            </section>
+        </section>
 
         <section class="mt-20 bg-gray-900/30 p-8 rounded-3xl border border-gray-800 opacity-0 y-50-anim">
             <div class="flex justify-between items-center mb-8">
@@ -122,7 +121,7 @@
                         </tr>
                     </thead>
                     <tbody id="titulos-body" class="divide-y divide-gray-800/50">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
         </section>
@@ -134,15 +133,17 @@
     </footer>
 
     <script>
-        // CONFIGURAÇÕES DE CONEXÃO - TROQUE PELO SEU IP REAL
-        const IP_CONTABO = 'seu_ip_aqui'; 
-        const FLASK_API = `http://${IP_CONTABO}:5001/api`;
-        const DIRECTUS_API = `http://${IP_CONTABO}:8055`;
+        // ATENÇÃO: Se o seu site é HTTPS, estas URLs DEVEM ser HTTPS.
+        // Se você não criou subdomínios, use o IP com https:// se tiver SSL ou o domínio que o Dokploy te deu.
+        const DOMINIO_API = 'https://dashflix.leanttro.com'; // Altere para o domínio da sua API Flask
+        const DOMINIO_DIRECTUS = 'http://SEU_IP_VPS:8055'; // Altere para o domínio do seu Directus
+        
+        const FLASK_API = `${DOMINIO_API}/api`;
+        const DIRECTUS_API = DOMINIO_DIRECTUS;
 
         let visualConfig = {};
         let currentLang = 'pt';
 
-        // SISTEMA DE TRADUÇÃO
         const i18n = {
             pt: {
                 hero_title: "Métricas Premium",
@@ -168,7 +169,6 @@
             }
         };
 
-        // 1. CARREGAR CONFIGURAÇÕES VISUAIS DO DIRECTUS
         async function loadVisualConfig() {
             try {
                 const response = await fetch(`${DIRECTUS_API}/items/configuracoes_dashflix/1`);
@@ -176,11 +176,8 @@
                 
                 if (data) {
                     visualConfig = data;
-                    
-                    // Aplicar Fonte
                     document.body.style.fontFamily = `'${data.fonte || 'Poppins'}', sans-serif`;
                     
-                    // Aplicar Tema
                     if (data.tema === 'light') {
                         document.body.classList.replace('bg-black', 'bg-gray-50');
                         document.body.classList.replace('text-white', 'text-gray-900');
@@ -191,17 +188,14 @@
                         document.body.style.backgroundColor = data.cor_fundo;
                     }
 
-                    // Cor Primária
                     const primary = data.cor_primaria || '#E50914';
                     document.documentElement.style.setProperty('--primary-color', primary);
                     document.getElementById('lang-switch').style.backgroundColor = primary;
 
-                    // Mídia (Vídeo ou Imagem)
                     if (data.midia_url) {
                         const section = document.getElementById('midia-section');
                         const content = document.getElementById('midia-content');
                         section.classList.remove('hidden');
-                        
                         if (data.midia_tipo === 'video') {
                             content.innerHTML = `<video src="${data.midia_url}" autoplay loop muted playsinline class="midia-container"></video>`;
                         } else {
@@ -210,21 +204,17 @@
                     }
                 }
             } catch (err) {
-                console.error("Erro ao carregar Directus Config:", err);
+                console.error("Erro Directus Config:", err);
             }
         }
 
-        // 2. CARREGAR DADOS DO FLASK (KAGGLE)
         async function loadDashboardData() {
             try {
-                // KPIs
                 const resResumo = await fetch(`${FLASK_API}/resumo`);
                 const dataResumo = await resResumo.json();
-                
                 const total = dataResumo.reduce((acc, curr) => acc + curr.count, 0);
                 const movies = dataResumo.find(i => i.type === 'Movie')?.count || 0;
                 const shows = dataResumo.find(i => i.type === 'TV Show')?.count || 0;
-
                 const lang = i18n[currentLang];
                 
                 document.getElementById('summary-container').innerHTML = `
@@ -242,10 +232,8 @@
                     </div>
                 `;
 
-                // Tabela
                 const resTitulos = await fetch(`${FLASK_API}/titulos?limit=8`);
                 const dataTitulos = await resTitulos.json();
-                
                 document.getElementById('titulos-body').innerHTML = dataTitulos.map(t => `
                     <tr class="hover:bg-red-600/5 transition-colors group">
                         <td class="px-6 py-4 font-mono text-gray-600 text-xs">${t.show_id}</td>
@@ -258,22 +246,18 @@
                         <td class="px-6 py-4 text-gray-500">${t.release_year}</td>
                     </tr>
                 `).join('');
-
             } catch (err) {
-                console.error("Erro ao carregar dados do Flask:", err);
+                console.error("Erro Flask Data:", err);
             }
         }
 
-        // 3. GERAR OPÇÕES DO ECHARTS
         function getChartOption(tipo, cor, labels, values) {
             const isPie = tipo === 'pie' || tipo === 'doughnut';
-            
             let baseOpt = {
                 backgroundColor: 'transparent',
                 tooltip: { trigger: isPie ? 'item' : 'axis', backgroundColor: '#1f2937', borderColor: '#374151', textStyle: { color: '#fff' } },
                 color: [cor, '#3b82f6', '#10b981', '#f59e0b']
             };
-
             if (isPie) {
                 baseOpt.series = [{
                     type: 'pie',
@@ -287,7 +271,6 @@
                 const isHorizontal = tipo === 'bar_horizontal';
                 baseOpt.xAxis = isHorizontal ? { type: 'value', splitLine: { show: false } } : { type: 'category', data: labels, axisLine: { lineStyle: { color: '#4b5563' } } };
                 baseOpt.yAxis = isHorizontal ? { type: 'category', data: labels, axisLine: { lineStyle: { color: '#4b5563' } } } : { type: 'value', splitLine: { lineStyle: { color: '#1f2937' } } };
-                
                 baseOpt.series = [{
                     data: values,
                     type: tipo === 'area' ? 'line' : (isHorizontal ? 'bar' : tipo),
@@ -299,40 +282,30 @@
             return baseOpt;
         }
 
-        // 4. INICIALIZAR GRÁFICOS DINÂMICOS (JSON ARRAY)
         async function initCharts() {
             const container = document.getElementById('graficos-dinamicos');
             container.innerHTML = '';
-            
             const configGraficos = visualConfig.graficos || [];
             let chartInstances = [];
 
             for (let i = 0; i < configGraficos.length; i++) {
                 const g = configGraficos[i];
-                
-                // Criar elemento no DOM
                 const card = document.createElement('div');
                 card.className = 'bg-gray-900/40 p-8 rounded-3xl border border-gray-800 opacity-0 y-50-anim';
                 if (visualConfig.tema === 'light') card.classList.replace('bg-gray-900/40', 'bg-white');
-                
                 card.innerHTML = `
                     <h3 class="text-2xl font-black mb-1 tracking-tighter">${g.titulo}</h3>
                     <p class="text-sm text-gray-500 mb-8 font-medium">${g.sub}</p>
                     <div id="chart-id-${i}" class="chart-container"></div>
                 `;
                 container.appendChild(card);
-
-                const chartDom = document.getElementById(`chart-id-${i}`);
-                const myChart = echarts.init(chartDom, visualConfig.tema === 'light' ? 'light' : 'dark');
+                const myChart = echarts.init(document.getElementById(`chart-id-${i}`), visualConfig.tema === 'light' ? 'light' : 'dark');
                 chartInstances.push(myChart);
-
                 try {
                     const res = await fetch(`${FLASK_API}${g.endpoint}`);
                     const rawData = await res.json();
-                    
                     let labels = [];
                     let values = [];
-
                     if (g.endpoint === '/top-paises') {
                         labels = rawData.map(d => d.pais);
                         values = rawData.map(d => d.total);
@@ -342,51 +315,39 @@
                         labels = rawData.map(d => d.release_year);
                         values = rawData.map(d => d.count);
                     }
-
                     myChart.setOption(getChartOption(g.tipo, g.cor, labels, values));
-                } catch (err) { console.error("Erro no gráfico", i, err); }
+                } catch (err) { console.error("Erro gráfico", i, err); }
             }
-
             window.addEventListener('resize', () => chartInstances.forEach(c => c.resize()));
         }
 
-        // 5. ANIMAÇÕES GSAP
         function runAnimations() {
             const tl = gsap.timeline();
-            
             tl.to('#curtain', { yPercent: -100, duration: 1.2, ease: "expo.inOut", delay: 0.5 })
               .to('#netflix-logo', { scale: 1, rotate: 0, opacity: 1, duration: 0.8, ease: "back.out(1.7)" }, "-=0.4")
               .to('.y-20-anim', { y: 0, opacity: 1, duration: 1, stagger: 0.2, ease: "power4.out" }, "-=0.5")
               .to('.metric-card', { scale: 1, opacity: 1, duration: 0.8, stagger: 0.1, ease: "back.out(1.2)" }, "-=0.8")
               .add(() => {
                   initCharts();
-                  // ScrollTriggers para os elementos que surgem depois
                   document.querySelectorAll('.y-50-anim').forEach(el => {
-                      gsap.to(el, {
-                          scrollTrigger: { trigger: el, start: "top 85%" },
-                          y: 0, opacity: 1, duration: 1.2, ease: "power3.out"
-                      });
+                      gsap.to(el, { scrollTrigger: { trigger: el, start: "top 85%" }, y: 0, opacity: 1, duration: 1.2, ease: "power3.out" });
                   });
               });
         }
 
-        // ALTERNAR IDIOMA
         document.getElementById('lang-switch').addEventListener('click', () => {
             currentLang = currentLang === 'pt' ? 'en' : 'pt';
             const lang = i18n[currentLang];
-            
             document.getElementById('hero-title').innerText = lang.hero_title;
             document.getElementById('hero-subtitle').innerText = lang.hero_subtitle;
             document.getElementById('table-title').innerText = lang.table_title;
             document.getElementById('th-type').innerText = lang.th_type;
             document.getElementById('th-title').innerText = lang.th_title;
             document.getElementById('th-year').innerText = lang.th_year;
-            
-            loadDashboardData(); // Recarrega KPIs com novos nomes
-            initCharts(); // Recarrega legendas dos gráficos
+            loadDashboardData();
+            initCharts();
         });
 
-        // INICIALIZAÇÃO TOTAL
         window.addEventListener('load', async () => {
             gsap.registerPlugin(ScrollTrigger);
             await loadVisualConfig();
