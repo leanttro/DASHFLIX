@@ -30,6 +30,7 @@
             </header>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                
                 <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
                     <h3 class="text-xl font-bold mb-6 border-b pb-2 text-red-600">Visual Geral</h3>
                     <div class="mb-4">
@@ -56,11 +57,12 @@
                     <h3 class="text-xl font-bold mb-6 border-b pb-2 text-red-600">Mídia de Destaque</h3>
                     <div class="mb-4">
                         <label class="block text-sm font-bold mb-2 text-gray-600">URL da Mídia (Imagem ou Vídeo MP4)</label>
-                        <input type="text" x-model="config.midia_url" class="w-full p-3 border rounded-lg font-mono text-sm bg-gray-50" placeholder="https://...">
+                        <input type="text" x-model="config.midia_url" class="w-full p-3 border rounded-lg font-mono text-sm bg-gray-50" placeholder="https://exemplo.com/media.mp4">
                     </div>
                     <label class="block text-sm font-bold mb-2 text-gray-600">Tipo de Mídia</label>
                     <select x-model="config.midia_tipo" class="w-full p-3 border rounded-lg bg-gray-50"><option value="image">Imagem</option><option value="video">Vídeo</option></select>
                 </div>
+
             </div>
 
             <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-8">
@@ -68,22 +70,37 @@
                     <h3 class="text-xl font-bold text-gray-800">Construtor de Gráficos Dinâmicos (JSON)</h3>
                     <button @click="addChart()" class="bg-black text-white px-5 py-2 rounded-lg font-bold hover:bg-gray-800 transition shadow">+ Adicionar Gráfico</button>
                 </div>
+                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <template x-for="(g, i) in config.graficos" :key="i">
                         <div class="border border-gray-200 p-6 rounded-xl bg-gray-50 relative shadow-inner">
                             <button @click="config.graficos.splice(i, 1)" class="absolute top-4 right-4 text-red-500 font-bold bg-white px-2 py-1 rounded shadow hover:bg-red-50 transition">Remover</button>
-                            <input type="text" x-model="g.titulo" class="w-full p-2 border rounded mb-2 font-bold text-sm" placeholder="Título">
-                            <input type="text" x-model="g.sub" class="w-full p-2 border rounded mb-4 text-sm" placeholder="Subtítulo">
+                            
+                            <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Título</label>
+                            <input type="text" x-model="g.titulo" class="w-full p-2 border rounded mb-2 font-bold text-sm" placeholder="Título do Gráfico">
+                            
+                            <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Subtítulo</label>
+                            <input type="text" x-model="g.sub" class="w-full p-2 border rounded mb-4 text-sm" placeholder="Breve descrição">
+                            
+                            <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Fonte de Dados</label>
                             <select x-model="g.endpoint" class="w-full p-2 border rounded mb-4 text-sm bg-white"><option value="/top-paises">Top 10 Países</option><option value="/lancamentos-ano">Evolução por Ano</option></select>
+                            
+                            <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Visual e Cor</label>
                             <div class="flex gap-2">
                                 <select x-model="g.tipo" class="flex-1 p-2 border rounded text-sm bg-white">
-                                    <option value="bar">Colunas</option><option value="bar_horizontal">Barras</option><option value="line">Linha</option><option value="area">Área</option><option value="pie">Pizza</option><option value="doughnut">Rosca</option>
+                                    <option value="bar">Colunas Verticais</option>
+                                    <option value="bar_horizontal">Barras Horizontais</option>
+                                    <option value="line">Linha Simples</option>
+                                    <option value="area">Linha com Área</option>
+                                    <option value="pie">Gráfico de Pizza</option>
+                                    <option value="doughnut">Gráfico de Rosca</option>
                                 </select>
                                 <input type="color" x-model="g.cor" class="w-14 h-10 cursor-pointer rounded border-0">
                             </div>
                         </div>
                     </template>
                 </div>
+                <div x-show="config.graficos.length === 0" class="text-center py-10 text-gray-400 italic bg-gray-50 rounded-xl border-2 border-dashed mt-4">Nenhum gráfico criado. Clique em adicionar para começar.</div>
             </div>
 
             <section class="mt-10 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
@@ -111,24 +128,32 @@
                     </table>
                 </div>
             </section>
+
         </main>
     </div>
 
     <script>
-        // Use HTTPS para evitar o erro de Mixed Content
-        const DOMINIO_API = 'https://dashflix.leanttro.com'; 
-        const DOMINIO_DIRECTUS = 'http://SEU_IP_VPS:8055'; 
+        // DOMÍNIOS ATUALIZADOS BASEADO NO SEU DOKPLOY
+        const DOMINIO_API_FLASK = "https://api-dashflix.leanttro.com/api";
+        const DOMINIO_DIRECTUS = "https://api.leanttro.com";
 
-        const DIRECTUS_URL = DOMINIO_DIRECTUS; 
-        const FLASK_URL_BASE = `${DOMINIO_API}/api`;
-        const CONFIG_API = `${DIRECTUS_URL}/items/configuracoes_dashflix/1`;
+        const CONFIG_API = `${DOMINIO_DIRECTUS}/items/configuracoes_dashflix/1`;
 
         function editor() {
             return {
                 saving: false,
                 loadingETL: false,
-                config: { tema: 'dark', cor_primaria: '#E50914', cor_fundo: '#000000', fonte: 'Poppins', midia_url: '', midia_tipo: 'image', graficos: [] },
+                config: { 
+                    tema: 'dark', 
+                    cor_primaria: '#E50914', 
+                    cor_fundo: '#000000', 
+                    fonte: 'Poppins', 
+                    midia_url: '', 
+                    midia_tipo: 'image', 
+                    graficos: [] 
+                },
                 rawData: [],
+
                 async init() {
                     try {
                         const r = await fetch(CONFIG_API);
@@ -140,27 +165,43 @@
                     } catch (e) { console.error("Erro Directus Fetch:", e); }
                     this.loadRaw();
                 },
-                addChart() { this.config.graficos.push({ titulo: 'Novo Gráfico', sub: 'Descrição', endpoint: '/top-paises', tipo: 'bar', cor: this.config.cor_primaria }); },
+
+                addChart() { 
+                    this.config.graficos.push({ 
+                        titulo: 'Novo Gráfico', 
+                        sub: 'Descrição curta', 
+                        endpoint: '/top-paises', 
+                        tipo: 'bar', 
+                        cor: this.config.cor_primaria 
+                    }); 
+                },
+
                 async loadRaw() {
                     try {
-                        const r = await fetch(`${FLASK_URL_BASE}/titulos?limit=20`);
+                        const r = await fetch(`${DOMINIO_API_FLASK}/titulos?limit=20`);
                         this.rawData = await r.json();
                     } catch (e) { console.error("Erro Flask Raw Fetch:", e); }
                 },
+
                 async triggerETL() {
                     this.loadingETL = true;
                     try {
-                        const r = await fetch(`${FLASK_URL_BASE}/run-etl`, { method: 'POST' });
+                        const r = await fetch(`${DOMINIO_API_FLASK}/run-etl`, { method: 'POST' });
                         const res = await r.json();
                         alert(res.mensagem);
-                    } catch (e) { alert('Erro ao iniciar sincronização. Verifique se a API está em HTTPS.'); }
+                    } catch (e) { alert('Erro ao iniciar sincronização.'); }
                     this.loadingETL = false;
                 },
+
                 async save() {
                     this.saving = true;
                     try {
-                        const response = await fetch(CONFIG_API, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.config) });
-                        if(response.ok) alert('Configurações Salvas!');
+                        const response = await fetch(CONFIG_API, { 
+                            method: 'PATCH', 
+                            headers: { 'Content-Type': 'application/json' }, 
+                            body: JSON.stringify(this.config) 
+                        });
+                        if(response.ok) alert('Configurações Salvas com Sucesso!');
                         else alert('Erro ao salvar no Directus.');
                     } catch (e) { alert('Erro de rede ao salvar.'); }
                     this.saving = false;
