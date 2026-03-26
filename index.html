@@ -63,16 +63,36 @@
         ::-webkit-scrollbar-track { background: #141414; }
         ::-webkit-scrollbar-thumb { background: #E50914; border-radius: 10px; }
         
-        /* Debug helper */
-        .debug-info {
-            background: #1e1e2f;
-            color: #0f0;
-            font-family: monospace;
-            padding: 10px;
-            margin: 10px;
+        /* Estilos para filtros */
+        .filter-select {
+            background-color: #1f2937;
+            border: 1px solid #374151;
             border-radius: 8px;
-            font-size: 12px;
-            display: none;
+            padding: 0.5rem 1rem;
+            color: white;
+            font-size: 0.875rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .filter-select:focus {
+            border-color: #E50914;
+            box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.2);
+        }
+        .filter-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #9ca3af;
+            margin-bottom: 0.25rem;
+            display: block;
+        }
+        .reset-btn {
+            background-color: #374151;
+            transition: all 0.2s;
+        }
+        .reset-btn:hover {
+            background-color: #4b5563;
         }
     </style>
 </head>
@@ -107,6 +127,40 @@
             </div>
         </section>
 
+        <!-- Barra de Filtros -->
+        <section class="mb-12 bg-gray-900/50 p-6 rounded-2xl border border-gray-800 backdrop-blur-sm">
+            <h3 class="text-lg font-semibold mb-4 text-red-500">🔍 Filtros Interativos</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="filter-label">Ano de Lançamento</label>
+                    <select id="filter-ano" class="filter-select w-full">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="filter-label">País</label>
+                    <select id="filter-pais" class="filter-select w-full">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="filter-label">Classificação Indicativa</label>
+                    <select id="filter-rating" class="filter-select w-full">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="filter-label">Categoria</label>
+                    <select id="filter-categoria" class="filter-select w-full">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end mt-4">
+                <button id="reset-filters" class="reset-btn text-white px-4 py-2 rounded-lg text-sm font-medium">Limpar Filtros</button>
+            </div>
+        </section>
+
         <section id="midia-section" class="mb-20 opacity-0 y-20-anim hidden">
             <div class="bg-gray-900/40 p-2 rounded-3xl border border-gray-800">
                 <div id="midia-content"></div>
@@ -126,7 +180,7 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left text-gray-400">
                     <thead class="text-xs text-gray-500 uppercase border-b border-gray-800">
-                        <tr>
+                         transduction
                             <th class="px-6 py-4">ID</th>
                             <th id="th-type" class="px-6 py-4">Tipo</th>
                             <th id="th-title" class="px-6 py-4">Título</th>
@@ -151,6 +205,13 @@
 
         let visualConfig = {};
         let currentLang = 'pt';
+        let currentFilters = {
+            ano: '',
+            pais: '',
+            rating: '',
+            categoria: ''
+        };
+        let chartInstances = [];
 
         const i18n = {
             pt: {
@@ -187,7 +248,6 @@
                     visualConfig = data;
                     console.log("Configuração carregada:", visualConfig);
                     
-                    // Garantir que graficos seja um array
                     if (!visualConfig.graficos || !Array.isArray(visualConfig.graficos)) {
                         visualConfig.graficos = [];
                         console.warn("Nenhum gráfico configurado. Serão criados gráficos padrão.");
@@ -222,7 +282,6 @@
                     }
                 } else {
                     console.warn("Nenhuma configuração encontrada. Usando defaults.");
-                    // Se não houver configuração, criar gráficos padrão
                     visualConfig.graficos = [];
                 }
             } catch (err) {
@@ -230,7 +289,6 @@
                 visualConfig.graficos = [];
             }
             
-            // Fallback: se não houver gráficos, criar dois padrão
             if (!visualConfig.graficos || visualConfig.graficos.length === 0) {
                 console.log("Criando gráficos padrão de fallback...");
                 visualConfig.graficos = [
@@ -252,12 +310,61 @@
             }
         }
 
+        async function loadFilterOptions() {
+            try {
+                const res = await fetch(`${FLASK_API}/filter-options`);
+                const data = await res.json();
+                
+                // Popula anos
+                const anoSelect = document.getElementById('filter-ano');
+                anoSelect.innerHTML = '<option value="">Todos</option>';
+                data.anos.forEach(ano => {
+                    const opt = document.createElement('option');
+                    opt.value = ano;
+                    opt.textContent = ano;
+                    anoSelect.appendChild(opt);
+                });
+                
+                // Popula países
+                const paisSelect = document.getElementById('filter-pais');
+                paisSelect.innerHTML = '<option value="">Todos</option>';
+                data.paises.forEach(pais => {
+                    const opt = document.createElement('option');
+                    opt.value = pais;
+                    opt.textContent = pais;
+                    paisSelect.appendChild(opt);
+                });
+                
+                // Popula ratings
+                const ratingSelect = document.getElementById('filter-rating');
+                ratingSelect.innerHTML = '<option value="">Todos</option>';
+                data.ratings.forEach(rating => {
+                    const opt = document.createElement('option');
+                    opt.value = rating;
+                    opt.textContent = rating;
+                    ratingSelect.appendChild(opt);
+                });
+                
+                // Popula categorias
+                const catSelect = document.getElementById('filter-categoria');
+                catSelect.innerHTML = '<option value="">Todos</option>';
+                data.categorias.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat;
+                    opt.textContent = cat;
+                    catSelect.appendChild(opt);
+                });
+            } catch (err) {
+                console.error("Erro ao carregar opções de filtro:", err);
+            }
+        }
+
         async function loadDashboardData() {
             try {
                 const resResumo = await fetch(`${FLASK_API}/resumo`);
                 const dataResumo = await resResumo.json();
                 
-                const total = dataResumo.reduce((acc, curr) => acc + curr.count, 0);
+                const total = dataResumo.find(i => i.type === 'Total')?.count || 0;
                 const movies = dataResumo.find(i => i.type === 'Movie')?.count || 0;
                 const shows = dataResumo.find(i => i.type === 'TV Show')?.count || 0;
 
@@ -278,10 +385,25 @@
                     </div>
                 `;
 
-                const resTitulos = await fetch(`${FLASK_API}/titulos?limit=8`);
-                const dataTitulos = await resTitulos.json();
+                // Carrega tabela com filtros atuais
+                await loadTitulos();
+            } catch (err) {
+                console.error("Erro ao carregar dados do Flask:", err);
+            }
+        }
+
+        async function loadTitulos() {
+            try {
+                let url = `${FLASK_API}/titulos?limit=12`;
+                if (currentFilters.ano) url += `&ano=${currentFilters.ano}`;
+                if (currentFilters.pais) url += `&pais=${encodeURIComponent(currentFilters.pais)}`;
+                if (currentFilters.rating) url += `&rating=${encodeURIComponent(currentFilters.rating)}`;
+                if (currentFilters.categoria) url += `&categoria=${encodeURIComponent(currentFilters.categoria)}`;
                 
-                document.getElementById('titulos-body').innerHTML = dataTitulos.map(t => `
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                document.getElementById('titulos-body').innerHTML = data.map(t => `
                     <tr class="hover:bg-red-600/5 transition-colors group">
                         <td class="px-6 py-4 font-mono text-gray-600 text-xs">${t.show_id}</td>
                         <td class="px-6 py-4">
@@ -293,9 +415,8 @@
                         <td class="px-6 py-4 text-gray-500">${t.release_year}</td>
                     </tr>
                 `).join('');
-
             } catch (err) {
-                console.error("Erro ao carregar dados do Flask:", err);
+                console.error("Erro ao carregar títulos:", err);
             }
         }
 
@@ -347,12 +468,11 @@
             console.log(`Número de gráficos a renderizar: ${configGraficos.length}`);
             
             if (configGraficos.length === 0) {
-                console.warn("Nenhum gráfico configurado. Exibindo mensagem.");
                 container.innerHTML = '<div class="col-span-full text-center text-gray-500 p-10">Nenhum gráfico configurado. Acesse o painel editor para adicionar gráficos.</div>';
                 return;
             }
             
-            let chartInstances = [];
+            chartInstances = [];
 
             for (let i = 0; i < configGraficos.length; i++) {
                 const g = configGraficos[i];
@@ -379,7 +499,15 @@
                 chartInstances.push(myChart);
 
                 try {
-                    const res = await fetch(`${FLASK_API}${g.endpoint}`);
+                    // Construir URL com filtros atuais
+                    let url = `${FLASK_API}${g.endpoint}`;
+                    const params = new URLSearchParams();
+                    if (currentFilters.ano) params.append('ano', currentFilters.ano);
+                    if (currentFilters.pais) params.append('pais', currentFilters.pais);
+                    const queryString = params.toString();
+                    if (queryString) url += '?' + queryString;
+                    
+                    const res = await fetch(url);
                     if (!res.ok) {
                         throw new Error(`HTTP ${res.status}`);
                     }
@@ -394,12 +522,9 @@
                         values = rawData.map(d => d.total);
                         if (g.tipo === 'bar_horizontal') { labels.reverse(); values.reverse(); }
                     } else if (g.endpoint === '/lancamentos-ano') {
-                        // Certificar que ordena por ano crescente
-                        rawData.sort((a,b) => a.release_year - b.release_year);
                         labels = rawData.map(d => d.release_year);
                         values = rawData.map(d => d.count);
                     } else {
-                        // fallback
                         labels = rawData.map((_, idx) => idx);
                         values = rawData;
                     }
@@ -413,7 +538,6 @@
                         myChart.setOption(getChartOption(g.tipo, g.cor, labels, values));
                     }
                     
-                    // Animar entrada do gráfico
                     gsap.to(chartDom, { opacity: 1, y: 0, duration: 0.8, delay: 0.2, ease: "power2.out" });
                     
                 } catch (err) {
@@ -424,9 +548,43 @@
                 }
             }
 
-            window.chartInstances = chartInstances;
             window.addEventListener('resize', () => chartInstances.forEach(c => c.resize()));
             console.log("Gráficos renderizados com sucesso.");
+        }
+
+        function updateAll() {
+            loadDashboardData();
+            initCharts();
+        }
+
+        function setupFilters() {
+            const anoSelect = document.getElementById('filter-ano');
+            const paisSelect = document.getElementById('filter-pais');
+            const ratingSelect = document.getElementById('filter-rating');
+            const catSelect = document.getElementById('filter-categoria');
+            const resetBtn = document.getElementById('reset-filters');
+            
+            const applyFilters = () => {
+                currentFilters.ano = anoSelect.value;
+                currentFilters.pais = paisSelect.value;
+                currentFilters.rating = ratingSelect.value;
+                currentFilters.categoria = catSelect.value;
+                updateAll();
+            };
+            
+            anoSelect.addEventListener('change', applyFilters);
+            paisSelect.addEventListener('change', applyFilters);
+            ratingSelect.addEventListener('change', applyFilters);
+            catSelect.addEventListener('change', applyFilters);
+            
+            resetBtn.addEventListener('click', () => {
+                anoSelect.value = '';
+                paisSelect.value = '';
+                ratingSelect.value = '';
+                catSelect.value = '';
+                currentFilters = { ano: '', pais: '', rating: '', categoria: '' };
+                updateAll();
+            });
         }
 
         function runAnimations() {
@@ -459,12 +617,10 @@
             document.getElementById('th-year').innerText = lang.th_year;
             
             await loadDashboardData();
-            
-            // Apenas redimensiona os gráficos existentes, não recria
-            if (window.chartInstances) {
-                window.chartInstances.forEach(chart => chart.resize());
+            // Não recria gráficos, apenas redimensiona
+            if (chartInstances.length) {
+                chartInstances.forEach(chart => chart.resize());
             } else {
-                // Caso não existam, recria
                 initCharts();
             }
         });
@@ -472,7 +628,9 @@
         window.addEventListener('load', async () => {
             gsap.registerPlugin(ScrollTrigger);
             await loadVisualConfig();
+            await loadFilterOptions();
             await loadDashboardData();
+            setupFilters();
             runAnimations();
         });
     </script>
