@@ -62,6 +62,18 @@
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #141414; }
         ::-webkit-scrollbar-thumb { background: #E50914; border-radius: 10px; }
+        
+        /* Debug helper */
+        .debug-info {
+            background: #1e1e2f;
+            color: #0f0;
+            font-family: monospace;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            display: none;
+        }
     </style>
 </head>
 <body class="bg-black text-white antialiased">
@@ -101,6 +113,7 @@
             </div>
         </section>
 
+        <!-- Seção de gráficos -->
         <section id="graficos-dinamicos" class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
         </section>
 
@@ -166,11 +179,20 @@
 
         async function loadVisualConfig() {
             try {
+                console.log("Carregando configuração visual do Directus...");
                 const response = await fetch(`${DIRECTUS_API}/items/configuracoes_dashflix/1`);
                 const { data } = await response.json();
                 
                 if (data) {
                     visualConfig = data;
+                    console.log("Configuração carregada:", visualConfig);
+                    
+                    // Garantir que graficos seja um array
+                    if (!visualConfig.graficos || !Array.isArray(visualConfig.graficos)) {
+                        visualConfig.graficos = [];
+                        console.warn("Nenhum gráfico configurado. Serão criados gráficos padrão.");
+                    }
+                    
                     document.body.style.fontFamily = `'${data.fonte || 'Poppins'}', sans-serif`;
                     
                     if (data.tema === 'light') {
@@ -198,9 +220,35 @@
                             content.innerHTML = `<img src="${data.midia_url}" class="midia-container" alt="Destaque">`;
                         }
                     }
+                } else {
+                    console.warn("Nenhuma configuração encontrada. Usando defaults.");
+                    // Se não houver configuração, criar gráficos padrão
+                    visualConfig.graficos = [];
                 }
             } catch (err) {
                 console.error("Erro ao carregar Directus Config:", err);
+                visualConfig.graficos = [];
+            }
+            
+            // Fallback: se não houver gráficos, criar dois padrão
+            if (!visualConfig.graficos || visualConfig.graficos.length === 0) {
+                console.log("Criando gráficos padrão de fallback...");
+                visualConfig.graficos = [
+                    {
+                        titulo: "Top 10 Países com Mais Títulos",
+                        sub: "Ranking por país de origem",
+                        endpoint: "/top-paises",
+                        tipo: "bar",
+                        cor: visualConfig.cor_primaria || "#E50914"
+                    },
+                    {
+                        titulo: "Lançamentos por Ano",
+                        sub: "Evolução da produção de conteúdo",
+                        endpoint: "/lancamentos-ano",
+                        tipo: "line",
+                        cor: visualConfig.cor_primaria || "#E50914"
+                    }
+                ];
             }
         }
 
@@ -286,14 +334,29 @@
         }
 
         async function initCharts() {
+            console.log("Iniciando renderização dos gráficos...");
             const container = document.getElementById('graficos-dinamicos');
+            if (!container) {
+                console.error("Elemento #graficos-dinamicos não encontrado!");
+                return;
+            }
+            
             container.innerHTML = '';
             
             const configGraficos = visualConfig.graficos || [];
+            console.log(`Número de gráficos a renderizar: ${configGraficos.length}`);
+            
+            if (configGraficos.length === 0) {
+                console.warn("Nenhum gráfico configurado. Exibindo mensagem.");
+                container.innerHTML = '<div class="col-span-full text-center text-gray-500 p-10">Nenhum gráfico configurado. Acesse o painel editor para adicionar gráficos.</div>';
+                return;
+            }
+            
             let chartInstances = [];
 
             for (let i = 0; i < configGraficos.length; i++) {
                 const g = configGraficos[i];
+                console.log(`Renderizando gráfico ${i}: ${g.titulo} (endpoint: ${g.endpoint})`);
                 
                 const card = document.createElement('div');
                 card.className = 'bg-gray-900/40 p-8 rounded-3xl border border-gray-800 opacity-0 y-50-anim';
@@ -307,12 +370,21 @@
                 container.appendChild(card);
 
                 const chartDom = document.getElementById(`chart-id-${i}`);
+                if (!chartDom) {
+                    console.error(`Elemento chart-id-${i} não encontrado`);
+                    continue;
+                }
+                
                 const myChart = echarts.init(chartDom, visualConfig.tema === 'light' ? 'light' : 'dark');
                 chartInstances.push(myChart);
 
                 try {
                     const res = await fetch(`${FLASK_API}${g.endpoint}`);
+                    if (!res.ok) {
+                        throw new Error(`HTTP ${res.status}`);
+                    }
                     const rawData = await res.json();
+                    console.log(`Dados para gráfico ${i}:`, rawData);
                     
                     let labels = [];
                     let values = [];
@@ -321,20 +393,40 @@
                         labels = rawData.map(d => d.pais);
                         values = rawData.map(d => d.total);
                         if (g.tipo === 'bar_horizontal') { labels.reverse(); values.reverse(); }
-                    } else {
+                    } else if (g.endpoint === '/lancamentos-ano') {
+                        // Certificar que ordena por ano crescente
                         rawData.sort((a,b) => a.release_year - b.release_year);
                         labels = rawData.map(d => d.release_year);
                         values = rawData.map(d => d.count);
+                    } else {
+                        // fallback
+                        labels = rawData.map((_, idx) => idx);
+                        values = rawData;
                     }
 
-                    myChart.setOption(getChartOption(g.tipo, g.cor, labels, values));
-                } catch (err) { console.error("Erro no gráfico", i, err); }
+                    if (labels.length === 0 || values.length === 0) {
+                        console.warn(`Gráfico ${i} sem dados.`);
+                        myChart.setOption({
+                            title: { text: 'Sem dados disponíveis', left: 'center', top: 'center' }
+                        });
+                    } else {
+                        myChart.setOption(getChartOption(g.tipo, g.cor, labels, values));
+                    }
+                    
+                    // Animar entrada do gráfico
+                    gsap.to(chartDom, { opacity: 1, y: 0, duration: 0.8, delay: 0.2, ease: "power2.out" });
+                    
+                } catch (err) {
+                    console.error(`Erro no gráfico ${i}:`, err);
+                    myChart.setOption({
+                        title: { text: 'Erro ao carregar dados', left: 'center', top: 'center' }
+                    });
+                }
             }
 
-            // Armazenar as instâncias para uso futuro
             window.chartInstances = chartInstances;
-
             window.addEventListener('resize', () => chartInstances.forEach(c => c.resize()));
+            console.log("Gráficos renderizados com sucesso.");
         }
 
         function runAnimations() {
@@ -366,14 +458,13 @@
             document.getElementById('th-title').innerText = lang.th_title;
             document.getElementById('th-year').innerText = lang.th_year;
             
-            // Recarrega dados da tabela e mantém gráficos
             await loadDashboardData();
             
-            // Força o redesenho dos gráficos (já existentes)
+            // Apenas redimensiona os gráficos existentes, não recria
             if (window.chartInstances) {
                 window.chartInstances.forEach(chart => chart.resize());
             } else {
-                // Se os gráficos ainda não foram criados, chama initCharts
+                // Caso não existam, recria
                 initCharts();
             }
         });
