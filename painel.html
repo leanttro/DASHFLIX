@@ -21,13 +21,15 @@
             <header class="flex justify-between items-center mb-10 pb-4 border-b border-gray-200">
                 <h2 class="text-3xl font-bold tracking-tight text-gray-800">Configurações Wix Mode</h2>
                 <div class="flex gap-4">
-                    <span x-show="saving" class="text-gray-500 self-center animate-pulse">Salvando...</span>
+                    <button @click="triggerETL()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-md transition" :disabled="loadingETL">
+                        <span x-show="!loadingETL">Sincronizar Kaggle</span>
+                        <span x-show="loadingETL">Processando...</span>
+                    </button>
                     <button @click="save()" class="bg-red-600 text-white px-8 py-2 rounded-lg font-bold hover:bg-red-700 shadow-lg transition">Salvar Tudo</button>
                 </div>
             </header>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                
                 <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
                     <h3 class="text-xl font-bold mb-6 border-b pb-2 text-red-600">Visual Geral</h3>
                     <div class="mb-4">
@@ -54,12 +56,11 @@
                     <h3 class="text-xl font-bold mb-6 border-b pb-2 text-red-600">Mídia de Destaque</h3>
                     <div class="mb-4">
                         <label class="block text-sm font-bold mb-2 text-gray-600">URL da Mídia (Imagem ou Vídeo MP4)</label>
-                        <input type="text" x-model="config.midia_url" class="w-full p-3 border rounded-lg font-mono text-sm bg-gray-50" placeholder="https://exemplo.com/media.mp4">
+                        <input type="text" x-model="config.midia_url" class="w-full p-3 border rounded-lg font-mono text-sm bg-gray-50" placeholder="https://...">
                     </div>
                     <label class="block text-sm font-bold mb-2 text-gray-600">Tipo de Mídia</label>
                     <select x-model="config.midia_tipo" class="w-full p-3 border rounded-lg bg-gray-50"><option value="image">Imagem</option><option value="video">Vídeo</option></select>
                 </div>
-
             </div>
 
             <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-8">
@@ -67,89 +68,42 @@
                     <h3 class="text-xl font-bold text-gray-800">Construtor de Gráficos Dinâmicos (JSON)</h3>
                     <button @click="addChart()" class="bg-black text-white px-5 py-2 rounded-lg font-bold hover:bg-gray-800 transition shadow">+ Adicionar Gráfico</button>
                 </div>
-                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <template x-for="(g, i) in config.graficos" :key="i">
                         <div class="border border-gray-200 p-6 rounded-xl bg-gray-50 relative shadow-inner">
                             <button @click="config.graficos.splice(i, 1)" class="absolute top-4 right-4 text-red-500 font-bold bg-white px-2 py-1 rounded shadow hover:bg-red-50 transition">Remover</button>
-                            
-                            <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Título</label>
-                            <input type="text" x-model="g.titulo" class="w-full p-2 border rounded mb-2 font-bold text-sm" placeholder="Título do Gráfico">
-                            
-                            <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Subtítulo</label>
-                            <input type="text" x-model="g.sub" class="w-full p-2 border rounded mb-4 text-sm" placeholder="Breve descrição">
-                            
-                            <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Fonte de Dados</label>
+                            <input type="text" x-model="g.titulo" class="w-full p-2 border rounded mb-2 font-bold text-sm" placeholder="Título">
+                            <input type="text" x-model="g.sub" class="w-full p-2 border rounded mb-4 text-sm" placeholder="Subtítulo">
                             <select x-model="g.endpoint" class="w-full p-2 border rounded mb-4 text-sm bg-white"><option value="/top-paises">Top 10 Países</option><option value="/lancamentos-ano">Evolução por Ano</option></select>
-                            
-                            <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Visual e Cor</label>
                             <div class="flex gap-2">
                                 <select x-model="g.tipo" class="flex-1 p-2 border rounded text-sm bg-white">
-                                    <option value="bar">Colunas Verticais</option>
-                                    <option value="bar_horizontal">Barras Horizontais</option>
-                                    <option value="line">Linha Simples</option>
-                                    <option value="area">Linha com Área</option>
-                                    <option value="pie">Gráfico de Pizza</option>
-                                    <option value="doughnut">Gráfico de Rosca</option>
+                                    <option value="bar">Colunas</option><option value="bar_horizontal">Barras</option><option value="line">Linha</option><option value="area">Área</option><option value="pie">Pizza</option><option value="doughnut">Rosca</option>
                                 </select>
                                 <input type="color" x-model="g.cor" class="w-14 h-10 cursor-pointer rounded border-0">
                             </div>
                         </div>
                     </template>
                 </div>
-                <div x-show="config.graficos.length === 0" class="text-center py-10 text-gray-400 italic bg-gray-50 rounded-xl border-2 border-dashed mt-4">Nenhum gráfico criado. Clique em adicionar para começar.</div>
             </div>
-
-            <section class="mt-10 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-                <h3 class="text-xl font-bold mb-6 text-gray-800">Dados Brutos (Kaggle via Flask)</h3>
-                <div class="overflow-x-auto h-64 border border-gray-200 rounded-lg">
-                    <table class="w-full text-sm text-left text-gray-600">
-                        <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200 sticky top-0">
-                            <tr>
-                                <th class="px-4 py-3">ID</th>
-                                <th class="px-4 py-3">Tipo</th>
-                                <th class="px-4 py-3">Título</th>
-                                <th class="px-4 py-3">Lançamento</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <template x-for="item in rawData" :key="item.show_id">
-                                <tr class="border-b border-gray-100 hover:bg-gray-50">
-                                    <td class="px-4 py-3 font-mono text-gray-400" x-text="item.show_id"></td>
-                                    <td class="px-4 py-3" x-text="item.type"></td>
-                                    <td class="px-4 py-3 font-medium text-gray-900" x-text="item.title"></td>
-                                    <td class="px-4 py-3" x-text="item.release_year"></td>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
         </main>
     </div>
 
     <script>
-        const API = 'http://localhost:8055/items/configuracoes_dashflix/1';
-        const FLASK_URL = 'http://localhost:5001/api/titulos?limit=20';
+        // LEMBRE-SE DE TROCAR O IP_CONTABO PELO SEU IP REAL!
+        const IP_CONTABO = 'SEU_IP_DA_CONTABO'; 
+        const DIRECTUS_URL = `http://${IP_CONTABO}:8055`; 
+        const FLASK_URL_BASE = `http://${IP_CONTABO}:5001/api`;
+        const CONFIG_API = `${DIRECTUS_URL}/items/configuracoes_dashflix/1`;
 
         function editor() {
             return {
                 saving: false,
-                config: { 
-                    tema: 'dark', 
-                    cor_primaria: '#E50914', 
-                    cor_fundo: '#000000', 
-                    fonte: 'Poppins', 
-                    midia_url: '', 
-                    midia_tipo: 'image', 
-                    graficos: [] 
-                },
+                loadingETL: false,
+                config: { tema: 'dark', cor_primaria: '#E50914', cor_fundo: '#000000', fonte: 'Poppins', midia_url: '', midia_tipo: 'image', graficos: [] },
                 rawData: [],
-
                 async init() {
                     try {
-                        const r = await fetch(API);
+                        const r = await fetch(CONFIG_API);
                         const { data } = await r.json();
                         if (data) {
                             this.config = Object.assign(this.config, data);
@@ -158,33 +112,27 @@
                     } catch (e) { console.error("Erro Directus:", e); }
                     this.loadRaw();
                 },
-
-                addChart() { 
-                    this.config.graficos.push({ 
-                        titulo: 'Novo Gráfico', 
-                        sub: 'Descrição curta', 
-                        endpoint: '/top-paises', 
-                        tipo: 'bar', 
-                        cor: this.config.cor_primaria 
-                    }); 
-                },
-
+                addChart() { this.config.graficos.push({ titulo: 'Novo Gráfico', sub: 'Descrição', endpoint: '/top-paises', tipo: 'bar', cor: this.config.cor_primaria }); },
                 async loadRaw() {
                     try {
-                        const r = await fetch(FLASK_URL);
+                        const r = await fetch(`${FLASK_URL_BASE}/titulos?limit=20`);
                         this.rawData = await r.json();
                     } catch (e) { console.error("Erro Flask:", e); }
                 },
-
+                async triggerETL() {
+                    this.loadingETL = true;
+                    try {
+                        const r = await fetch(`${FLASK_URL_BASE}/run-etl`, { method: 'POST' });
+                        const res = await r.json();
+                        alert(res.mensagem);
+                    } catch (e) { alert('Erro ao iniciar sincronização.'); }
+                    this.loadingETL = false;
+                },
                 async save() {
                     this.saving = true;
                     try {
-                        const response = await fetch(API, { 
-                            method: 'PATCH', 
-                            headers: { 'Content-Type': 'application/json' }, 
-                            body: JSON.stringify(this.config) 
-                        });
-                        if(response.ok) alert('Configurações Salvas com Sucesso!');
+                        const response = await fetch(CONFIG_API, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.config) });
+                        if(response.ok) alert('Configurações Salvas!');
                         else alert('Erro ao salvar no Directus.');
                     } catch (e) { alert('Erro de rede.'); }
                     this.saving = false;
