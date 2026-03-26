@@ -20,8 +20,8 @@
         .chart-container { 
             width: 100%; 
             height: 400px; 
-            opacity: 0; 
-            transform: translateY(50px); 
+            opacity: 1; 
+            transform: none; 
         }
         .metric-card { 
             opacity: 0; 
@@ -304,17 +304,10 @@
         function populateFilters() {
             const years = [...new Set(allData.map(item => item.release_year).filter(y => y))].sort((a,b)=>b-a);
             
-            // Extrair todos os países, tratando múltiplos países por título (separados por vírgula)
-            const countrySet = new Set();
-            allData.forEach(item => {
-                if (item.country) {
-                    item.country.split(',').forEach(c => {
-                        const pais = c.trim();
-                        if (pais) countrySet.add(pais);
-                    });
-                }
-            });
-            const countries = Array.from(countrySet).sort();
+            const countries = [...new Set(allData.flatMap(item => {
+                if (!item.country) return [];
+                return item.country.split(',').map(c => c.trim());
+            }))].sort();
             
             const ratings = [...new Set(allData.map(item => item.rating).filter(r => r))].sort();
 
@@ -330,7 +323,7 @@
             const currentCountryVal = countrySelect.value;
             countrySelect.innerHTML = '<option value="">' + (currentLang === 'pt' ? 'Todos' : 'All') + '</option>';
             countries.forEach(c => {
-                countrySelect.innerHTML += `<option value="${c}">${c}</option>`;
+                if (c) countrySelect.innerHTML += `<option value="${c}">${c}</option>`;
             });
             countrySelect.value = currentCountryVal;
 
@@ -338,7 +331,7 @@
             const currentRatingVal = ratingSelect.value;
             ratingSelect.innerHTML = '<option value="">' + (currentLang === 'pt' ? 'Todos' : 'All') + '</option>';
             ratings.forEach(r => {
-                ratingSelect.innerHTML += `<option value="${r}">${r}</option>`;
+                if (r) ratingSelect.innerHTML += `<option value="${r}">${r}</option>`;
             });
             ratingSelect.value = currentRatingVal;
         }
@@ -366,7 +359,6 @@
                 if (rating && item.rating !== rating) return false;
                 if (country) {
                     if (!item.country) return false;
-                    // Divide os países (separados por vírgula) e verifica se algum corresponde ao filtro
                     const itemCountries = item.country.split(',').map(c => c.trim());
                     if (!itemCountries.includes(country)) return false;
                 }
@@ -441,7 +433,9 @@
             // Criar a estrutura HTML dos graficos caso ainda nao exista
             if (chartsContainer.children.length === 0) {
                 chartsContainer.innerHTML = graficosConfigurados.map((g, index) => {
+                    // O ultimo grafico pode ocupar duas colunas se for impar
                     const spanClass = (graficosConfigurados.length % 2 !== 0 && index === graficosConfigurados.length - 1) ? 'lg:col-span-2' : '';
+                    
                     return `
                     <div class="bg-gray-900/40 p-8 rounded-3xl border border-gray-800 opacity-0 y-50-anim ${spanClass}" id="chart-card-${index}">
                         <h3 class="text-2xl font-black mb-1 tracking-tighter">${g.titulo}</h3>
@@ -456,14 +450,6 @@
                         card.classList.replace('bg-gray-900/40', 'bg-white');
                     });
                 }
-
-                // Aplicar animação ScrollTrigger nos cards recém-criados
-                document.querySelectorAll('#graficos-dinamicos .y-50-anim').forEach(el => {
-                    gsap.to(el, {
-                        scrollTrigger: { trigger: el, start: "top 85%" },
-                        y: 0, opacity: 1, duration: 1.2, ease: "power3.out"
-                    });
-                });
             }
 
             // Agora vamos iterar pelas configuracoes do painel para renderizar os dados dinamicamente
@@ -471,23 +457,25 @@
                 let labels = [];
                 let values = [];
                 let filtroAlvo = '';
+                
+                const ep = (g.endpoint || '').toLowerCase();
+                const tit = (g.titulo || '').toLowerCase();
 
-                // Processar dados em memoria dependendo do endpoint escolhido no painel
-                if (g.endpoint.includes('paises')) {
+                // Processar dados em memoria dependendo da configuração
+                if (ep.includes('pais') || ep.includes('país') || tit.includes('pais') || tit.includes('country') || ep.includes('paises')) {
                     filtroAlvo = 'filter-country';
                     const contagem = {};
                     filteredData.forEach(item => {
                         if (item.country) {
-                            // Considerar o primeiro país listado para contagem (ou todos? para gráfico, usamos o primeiro)
                             const primeiroPais = item.country.split(',')[0].trim();
-                            if (primeiroPais) contagem[primeiroPais] = (contagem[primeiroPais] || 0) + 1;
+                            contagem[primeiroPais] = (contagem[primeiroPais] || 0) + 1;
                         }
                     });
                     const topContagem = Object.entries(contagem).sort((a,b) => b[1] - a[1]).slice(0, 10);
                     labels = topContagem.map(p => p[0]);
                     values = topContagem.map(p => p[1]);
                 } 
-                else if (g.endpoint.includes('ano')) {
+                else if (ep.includes('ano') || ep.includes('year') || tit.includes('ano')) {
                     filtroAlvo = 'filter-year';
                     const contagem = {};
                     filteredData.forEach(item => {
@@ -497,14 +485,15 @@
                     labels = Object.keys(contagem).sort((a,b) => a - b);
                     values = labels.map(y => contagem[y]);
                 }
-                else if (g.endpoint.includes('tipo') || g.tipo === 'pie' || g.tipo === 'doughnut') {
+                else if (ep.includes('tipo') || ep.includes('type') || tit.includes('tipo') || g.tipo === 'pie' || g.tipo === 'doughnut') {
                     filtroAlvo = 'filter-type';
                     const moviesContagem = filteredData.filter(i => i.type === 'Movie').length;
                     const showsContagem = filteredData.filter(i => i.type === 'TV Show').length;
                     labels = ['Movie', 'TV Show'];
                     values = [moviesContagem, showsContagem];
                 }
-                else if (g.endpoint.includes('rating') || true) {
+                else {
+                    // Fallback principal para classificação / rating ou dados não mapeados
                     filtroAlvo = 'filter-rating';
                     const contagem = {};
                     filteredData.forEach(item => {
@@ -530,18 +519,12 @@
                 chart = echarts.init(container, visualConfig.tema === 'light' ? 'light' : 'dark');
                 chartInstances[containerId] = chart;
                 
-                // EVENTO: Clique na barra/pizza preenche o select correspondente e aciona os filtros globais
+                // EVENTO POWER BI: Clique na barra/pizza preenche o select correspondente e aciona os filtros globais
                 chart.on('click', function(params) {
                     if(filtroAlvo && params.name) {
                         aplicarFiltroPeloGrafico(filtroAlvo, params.name);
                     }
                 });
-            }
-
-            // Se não há dados, mostrar mensagem e não renderizar gráfico vazio
-            if (!labels.length || !values.length || values.every(v => v === 0)) {
-                container.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500">Sem dados para exibir</div>';
-                return;
             }
 
             // Configuracoes base do ECharts
@@ -568,32 +551,24 @@
             } else {
                 const isHorizontal = chartType === 'bar_horizontal';
                 const baseType = chartType.replace('_horizontal', '');
-                if (baseType !== 'bar' && baseType !== 'line') {
-                    // fallback para bar caso tipo inválido
-                    option.series = [{ type: 'bar', data: values }];
-                } else {
-                    option.xAxis = isHorizontal ? { type: 'value' } : { type: 'category', data: labels, axisLabel: { rotate: 45, interval: 0 } };
-                    option.yAxis = isHorizontal ? { type: 'category', data: labels } : { type: 'value' };
-                    
-                    option.series = [{ 
-                        type: baseType, 
-                        data: values,
-                        smooth: (baseType === 'line'),
-                        areaStyle: baseType === 'line' ? { opacity: 0.3 } : null,
-                        itemStyle: { 
-                            borderRadius: baseType === 'bar' && !isHorizontal ? [4,4,0,0] : (baseType === 'bar' && isHorizontal ? [0,4,4,0] : 0)
-                        } 
-                    }];
-                }
+
+                option.xAxis = isHorizontal ? { type: 'value' } : { type: 'category', data: labels, axisLabel: { rotate: 45, interval: 0 } };
+                option.yAxis = isHorizontal ? { type: 'category', data: labels } : { type: 'value' };
+                
+                option.series = [{ 
+                    type: baseType, 
+                    data: values,
+                    smooth: (baseType === 'line' || baseType === 'area'),
+                    areaStyle: baseType === 'area' ? { opacity: 0.3 } : null,
+                    itemStyle: { 
+                        borderRadius: baseType === 'bar' && !isHorizontal ? [4,4,0,0] : (baseType === 'bar' && isHorizontal ? [0,4,4,0] : 0)
+                    } 
+                }];
             }
 
             // Injetar dados e renderizar
-            chart.setOption(option, true);
+            chart.setOption(option, true); // true para limpar as series anteriores se o tipo mudar
             chart.resize();
-            
-            // Garantir que o container do gráfico fique visível (remove opacidade inicial)
-            container.style.opacity = '1';
-            container.style.transform = 'translateY(0)';
         }
 
         // ==================== ATUALIZAR TABELA ====================
@@ -695,7 +670,7 @@
               .to('.y-20-anim', { y: 0, opacity: 1, duration: 1, stagger: 0.2, ease: "power4.out" }, "-=0.5")
               .to('.metric-card', { scale: 1, opacity: 1, duration: 0.8, stagger: 0.1, ease: "back.out(1.2)" }, "-=0.8")
               .add(() => {
-                  // Aciona as animacoes dos graficos a medida que chegam na tela (para os já existentes)
+                  // Aciona as animacoes dos graficos a medida que chegam na tela
                   document.querySelectorAll('.y-50-anim').forEach(el => {
                       gsap.to(el, {
                           scrollTrigger: { trigger: el, start: "top 85%" },
@@ -712,8 +687,7 @@
             updateLanguageTexts();
             updateSummaryCards();   // recria os cards com os textos atualizados
             updateTable();          // recria a tabela com os textos atualizados
-            // Recria os gráficos para atualizar textos fixos (títulos, legendas) – opcional
-            // Como os títulos dos gráficos vêm do painel, não precisam de tradução aqui.
+            
         });
 
         // ==================== DISPARO DE INICIO ====================
