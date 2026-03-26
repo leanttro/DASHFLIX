@@ -122,10 +122,12 @@
                             <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Subtítulo</label>
                             <input type="text" x-model="g.sub" class="w-full p-2 border rounded mb-4 text-sm" placeholder="Breve descrição">
                             
-                            <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Fonte de Dados (Endpoint Flask)</label>
+                            <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Fonte de Dados</label>
                             <select x-model="g.endpoint" class="w-full p-2 border rounded mb-4 text-sm bg-white">
                                 <option value="/top-paises">Top 10 Países</option>
                                 <option value="/lancamentos-ano">Evolução por Ano</option>
+                                <option value="/por-tipo">Distribuição por Tipo</option>
+                                <option value="/por-classificacao">Por Classificação</option>
                             </select>
                             
                             <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Visual e Cor</label>
@@ -174,7 +176,6 @@
     </div>
 
     <script>
-        // DOMÍNIOS EXTRAÍDOS DOS SEUS PRINTS
         const DIRECTUS_API_URL = 'https://api.leanttro.com'; 
         const FLASK_API_URL = 'https://api-dashflix.leanttro.com/api';
         const CONFIG_ITEM_ID = 1;
