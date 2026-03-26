@@ -331,6 +331,9 @@
                 } catch (err) { console.error("Erro no gráfico", i, err); }
             }
 
+            // Armazenar as instâncias para uso futuro
+            window.chartInstances = chartInstances;
+
             window.addEventListener('resize', () => chartInstances.forEach(c => c.resize()));
         }
 
@@ -352,7 +355,7 @@
               });
         }
 
-        document.getElementById('lang-switch').addEventListener('click', () => {
+        document.getElementById('lang-switch').addEventListener('click', async () => {
             currentLang = currentLang === 'pt' ? 'en' : 'pt';
             const lang = i18n[currentLang];
             
@@ -363,8 +366,16 @@
             document.getElementById('th-title').innerText = lang.th_title;
             document.getElementById('th-year').innerText = lang.th_year;
             
-            loadDashboardData();
-            initCharts();
+            // Recarrega dados da tabela e mantém gráficos
+            await loadDashboardData();
+            
+            // Força o redesenho dos gráficos (já existentes)
+            if (window.chartInstances) {
+                window.chartInstances.forEach(chart => chart.resize());
+            } else {
+                // Se os gráficos ainda não foram criados, chama initCharts
+                initCharts();
+            }
         });
 
         window.addEventListener('load', async () => {
