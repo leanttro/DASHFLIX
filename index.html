@@ -20,8 +20,8 @@
         .chart-container { 
             width: 100%; 
             height: 400px; 
-            opacity: 0; 
-            transform: translateY(50px); 
+            opacity: 1; 
+            transform: none; 
         }
         .metric-card { 
             opacity: 0; 
@@ -457,9 +457,12 @@
                 let labels = [];
                 let values = [];
                 let filtroAlvo = '';
+                
+                const ep = (g.endpoint || '').toLowerCase();
+                const tit = (g.titulo || '').toLowerCase();
 
-                // Processar dados em memoria dependendo do endpoint escolhido no painel
-                if (g.endpoint.includes('paises')) {
+                // Processar dados em memoria dependendo da configuração
+                if (ep.includes('pais') || ep.includes('país') || tit.includes('pais') || tit.includes('country') || ep.includes('paises')) {
                     filtroAlvo = 'filter-country';
                     const contagem = {};
                     filteredData.forEach(item => {
@@ -472,7 +475,7 @@
                     labels = topContagem.map(p => p[0]);
                     values = topContagem.map(p => p[1]);
                 } 
-                else if (g.endpoint.includes('ano')) {
+                else if (ep.includes('ano') || ep.includes('year') || tit.includes('ano')) {
                     filtroAlvo = 'filter-year';
                     const contagem = {};
                     filteredData.forEach(item => {
@@ -482,14 +485,15 @@
                     labels = Object.keys(contagem).sort((a,b) => a - b);
                     values = labels.map(y => contagem[y]);
                 }
-                else if (g.endpoint.includes('tipo') || g.tipo === 'pie' || g.tipo === 'doughnut') {
+                else if (ep.includes('tipo') || ep.includes('type') || tit.includes('tipo') || g.tipo === 'pie' || g.tipo === 'doughnut') {
                     filtroAlvo = 'filter-type';
                     const moviesContagem = filteredData.filter(i => i.type === 'Movie').length;
                     const showsContagem = filteredData.filter(i => i.type === 'TV Show').length;
                     labels = ['Movie', 'TV Show'];
                     values = [moviesContagem, showsContagem];
                 }
-                else if (g.endpoint.includes('rating') || true) {
+                else {
+                    // Fallback principal para classificação / rating ou dados não mapeados
                     filtroAlvo = 'filter-rating';
                     const contagem = {};
                     filteredData.forEach(item => {
