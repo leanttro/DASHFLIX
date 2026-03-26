@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DASHFLIX - Premium Data Insights</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
@@ -11,68 +12,116 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
     
     <style>
-        body { font-family: 'Poppins', sans-serif; transition: background 0.5s ease; overflow-x: hidden; }
-        .chart-container { width: 100%; height: 400px; opacity: 0; transform: translateY(50px); }
-        .metric-card { opacity: 0; transform: scale(0.8); }
-        /* Animação de entrada do Logo (Inspirado OnePiece) */
-        #netflix-logo { transform: rotate(-10deg) scale(0); opacity: 0; }
-        #curtain { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; justify-content: center; align-items: center; color: #E50914; font-size: 3rem; font-weight: 800; }
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            transition: background 0.5s ease, color 0.5s ease; 
+            overflow-x: hidden; 
+        }
+        
+        .chart-container { 
+            width: 100%; 
+            height: 400px; 
+            opacity: 0; 
+            transform: translateY(50px); 
+        }
+        
+        .metric-card { 
+            opacity: 0; 
+            transform: scale(0.8); 
+        }
+        
+        #netflix-logo { 
+            transform: rotate(-10deg) scale(0); 
+            opacity: 0; 
+        }
+        
+        #curtain { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: #000; 
+            z-index: 100; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            color: #E50914; 
+            font-size: 3rem; 
+            font-weight: 800; 
+        }
+        
+        .midia-container { 
+            width: 100%; 
+            max-height: 600px; 
+            object-fit: cover; 
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        /* Scrollbar customizada para o clima Netflix */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #141414; }
+        ::-webkit-scrollbar-thumb { background: #E50914; border-radius: 10px; }
     </style>
 </head>
 <body class="bg-black text-white antialiased">
 
     <div id="curtain">DASHFLIX</div>
 
-    <header class="fixed top-0 left-0 w-full z-50 bg-black/80 backdrop-blur-sm p-4 flex justify-between items-center border-b border-gray-800">
+    <header class="fixed top-0 left-0 w-full z-50 bg-black/80 backdrop-blur-md p-4 flex justify-between items-center border-b border-gray-800">
         <div class="flex items-center gap-2">
             <img id="netflix-logo" src="https://upload.wikimedia.org/wikipedia/commons/e/ea/Netflix_Logomark.png" alt="Netflix" class="h-10">
             <h1 class="text-2xl font-extrabold tracking-tighter text-white">DASH<span class="text-red-600">FLIX</span></h1>
         </div>
         <div class="flex items-center gap-4">
-            <button id="lang-switch" class="bg-gray-800 text-white px-4 py-1.5 rounded-full text-sm font-semibold hover:bg-red-600 transition duration-300">
-                EN/PT
+            <button id="lang-switch" class="bg-red-600 text-white px-5 py-2 rounded-full text-sm font-bold hover:scale-110 transition-transform duration-300 shadow-lg shadow-red-600/20">
+                EN / PT
             </button>
-            <a href="painel.html" class="text-gray-400 hover:text-white text-sm">Painel</a>
+            <a href="painel.html" class="text-gray-400 hover:text-white text-sm font-medium transition-colors">Acessar Painel</a>
         </div>
     </header>
 
-    <main class="pt-28 pb-20 px-4 md:px-10 max-w-7xl mx-auto">
+    <main class="pt-32 pb-20 px-4 md:px-10 max-w-7xl mx-auto">
         
-        <section class="mb-16 text-center">
-            <h2 data-i18n="hero_title" class="text-5xl md:text-7xl font-extrabold tracking-tighter mb-4 opacity-0 y-20-anim">Métricas Premium da Kaggle</h2>
-            <p data-i18n="hero_subtitle" class="text-xl text-gray-400 max-w-2xl mx-auto mb-10 opacity-0 y-20-anim">Visualização interativa e dinâmica do dataset "Netflix Shows", populado via Directus e Flask API.</p>
+        <section class="mb-20 text-center">
+            <h2 id="hero-title" class="text-5xl md:text-8xl font-extrabold tracking-tighter mb-6 opacity-0 y-20-anim">
+                Métricas Premium
+            </h2>
+            <p id="hero-subtitle" class="text-xl md:text-2xl text-gray-400 max-w-3xl mx-auto mb-12 opacity-0 y-20-anim">
+                Visualização interativa de dados do Kaggle processados via Python e Directus.
+            </p>
             
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="summary-container">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8" id="summary-container">
                 </div>
         </section>
 
-        <section class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-            
-            <div id="section-paises" class="bg-gray-900/50 p-6 rounded-2xl border border-gray-800 opacity-0 y-50-anim">
-                <h3 data-i18n="title_paises" class="text-2xl font-bold mb-6 tracking-tight">Top 10 Países Produtores</h3>
-                <div id="chart-paises" class="chart-container"></div>
+        <section id="midia-section" class="mb-20 opacity-0 y-20-anim hidden">
+            <div class="bg-gray-900/40 p-2 rounded-3xl border border-gray-800">
+                <div id="midia-content"></div>
             </div>
-
-            <div id="section-anos" class="bg-gray-900/50 p-6 rounded-2xl border border-gray-800 opacity-0 y-50-anim">
-                <h3 data-i18n="title_anos" class="text-2xl font-bold mb-6 tracking-tight">Evolução de Adições (Últimos 20 Anos)</h3>
-                <div id="chart-anos" class="chart-container"></div>
-            </div>
-
         </section>
 
-        <section class="mt-16 bg-gray-900/50 p-6 rounded-2xl border border-gray-800 opacity-0 y-50-anim">
-            <h3 data-i18n="title_titulos" class="text-2xl font-bold mb-6 tracking-tight">Últimos Títulos Adicionados</h3>
+        <section id="graficos-dinamicos" class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
+            </section>
+
+        <section class="mt-20 bg-gray-900/30 p-8 rounded-3xl border border-gray-800 opacity-0 y-50-anim">
+            <div class="flex justify-between items-center mb-8">
+                <h3 id="table-title" class="text-3xl font-bold tracking-tight">Últimos Lançamentos</h3>
+                <span class="bg-red-600/10 text-red-500 text-xs font-bold px-3 py-1 rounded-full border border-red-500/20 uppercase tracking-widest">Live Data</span>
+            </div>
+            
             <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-300">
+                <table class="w-full text-sm text-left text-gray-400">
                     <thead class="text-xs text-gray-500 uppercase border-b border-gray-800">
                         <tr>
-                            <th class="px-4 py-3">ID</th>
-                            <th data-i18n="table_type" class="px-4 py-3">Tipo</th>
-                            <th data-i18n="table_title" class="px-4 py-3">Título</th>
-                            <th data-i18n="table_release" class="px-4 py-3">Lançamento</th>
+                            <th class="px-6 py-4">ID</th>
+                            <th id="th-type" class="px-6 py-4">Tipo</th>
+                            <th id="th-title" class="px-6 py-4">Título</th>
+                            <th id="th-year" class="px-6 py-4">Ano</th>
                         </tr>
                     </thead>
-                    <tbody id="titulos-body">
+                    <tbody id="titulos-body" class="divide-y divide-gray-800/50">
                         </tbody>
                 </table>
             </div>
@@ -80,255 +129,269 @@
 
     </main>
 
-    <footer class="text-center p-10 text-gray-600 border-t border-gray-800 mt-10">
-        DASHFLIX - Powered by Contabo, Directus, Dokploy & GSAP.
+    <footer class="text-center p-12 text-gray-600 border-t border-gray-900 mt-20">
+        <p class="text-sm">DASHFLIX &copy; 2026 - Inteligência de Dados via Contabo & Dokploy</p>
     </footer>
 
     <script>
-        // CONFIGURAÇÕES DE API (Altere para os seus IPs da Contabo)
-        const FLASK_API_URL = 'http://localhost:5001/api'; 
-        const DIRECTUS_URL = 'http://localhost:8055'; // Para pegar as configurações visuais
+        // CONFIGURAÇÕES DE CONEXÃO - TROQUE PELO SEU IP REAL
+        const IP_CONTABO = 'seu_ip_aqui'; 
+        const FLASK_API = `http://${IP_CONTABO}:5001/api`;
+        const DIRECTUS_API = `http://${IP_CONTABO}:8055`;
 
-        // SISTEMA DE TRADUÇÃO (EN/PT)
+        let visualConfig = {};
+        let currentLang = 'pt';
+
+        // SISTEMA DE TRADUÇÃO
         const i18n = {
             pt: {
-                hero_title: "Métricas Premium da Kaggle",
-                hero_subtitle: "Visualização interativa e dinâmica do dataset \"Netflix Shows\", populado via Directus e Flask API.",
-                title_paises: "Top 10 Países Produtores",
-                title_anos: "Evolução de Adições (Últimos 20 Anos)",
-                title_titulos: "Últimos Títulos Adicionados",
-                table_type: "Tipo",
-                table_title: "Título",
-                table_release: "Lançamento",
-                total_titles: "Total de Títulos",
-                movies: "Filmes",
-                tv_shows: "Séries",
-                avg_release: "Ano Médio Lançamento"
+                hero_title: "Métricas Premium",
+                hero_subtitle: "Visualização interativa de dados do Kaggle processados via Python e Directus.",
+                total_labels: "Total de Títulos",
+                movies_label: "Filmes",
+                shows_label: "Séries de TV",
+                table_title: "Últimos Lançamentos",
+                th_type: "Tipo",
+                th_title: "Título",
+                th_year: "Ano"
             },
             en: {
-                hero_title: "Premium Kaggle Metrics",
-                hero_subtitle: "Interactive and dynamic visualization of the \"Netflix Shows\" dataset, powered by Directus and Flask API.",
-                title_paises: "Top 10 Producing Countries",
-                title_anos: "Additions Evolution (Last 20 Years)",
-                title_titulos: "Latest Titles Added",
-                table_type: "Type",
-                table_title: "Title",
-                table_release: "Release",
-                total_titles: "Total Titles",
-                movies: "Movies",
-                tv_shows: "TV Shows",
-                avg_release: "Avg. Release Year"
+                hero_title: "Premium Metrics",
+                hero_subtitle: "Interactive visualization of Kaggle data processed via Python and Directus.",
+                total_labels: "Total Titles",
+                movies_label: "Movies",
+                shows_label: "TV Shows",
+                table_title: "Latest Releases",
+                th_type: "Type",
+                th_title: "Title",
+                th_year: "Year"
             }
         };
 
-        let currentLang = 'pt';
-
-        // Função para aplicar traduções
-        function applyTranslations(lang) {
-            currentLang = lang;
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (i18n[lang] && i18n[lang][key]) {
-                    el.innerText = i18n[lang][key];
-                }
-            });
-            // Recarrega gráficos para atualizar legendas se necessário
-            initCharts(); 
-        }
-
-        document.getElementById('lang-switch').addEventListener('click', () => {
-            applyTranslations(currentLang === 'pt' ? 'en' : 'pt');
-        });
-    </script>
-
-    <script>
-        gsap.registerPlugin(ScrollTrigger);
-        let chartPaises, chartAnos;
-
-        // 1. Carregar Configurações Visuais do Directus
+        // 1. CARREGAR CONFIGURAÇÕES VISUAIS DO DIRECTUS
         async function loadVisualConfig() {
             try {
-                // Supondo que você criou a collection 'configuracoes_dashflix' e o item ID 1
-                const response = await fetch(`${DIRECTUS_URL}/items/configuracoes_dashflix/1`);
+                const response = await fetch(`${DIRECTUS_API}/items/configuracoes_dashflix/1`);
                 const { data } = await response.json();
-
+                
                 if (data) {
-                    // Aplicar Fonte
-                    document.body.style.fontFamily = `'${data.fonte}', sans-serif`;
+                    visualConfig = data;
                     
-                    // Aplicar Cores
+                    // Aplicar Fonte
+                    document.body.style.fontFamily = `'${data.fonte || 'Poppins'}', sans-serif`;
+                    
+                    // Aplicar Tema
                     if (data.tema === 'light') {
-                        document.body.classList.remove('bg-black', 'text-white');
-                        document.body.classList.add('bg-white', 'text-gray-900');
-                        document.querySelectorAll('header, footer, div.bg-gray-900\\/50').forEach(el => el.classList.add('bg-gray-100', 'border-gray-200'));
-                    } else {
-                        // Força a cor de fundo do Directus se definida
+                        document.body.classList.replace('bg-black', 'bg-gray-50');
+                        document.body.classList.replace('text-white', 'text-gray-900');
+                        document.querySelectorAll('header, footer, div.bg-gray-900\\/30, div.bg-gray-900\\/40').forEach(el => {
+                            el.classList.add('bg-white', 'border-gray-200');
+                        });
+                    } else if (data.cor_fundo) {
                         document.body.style.backgroundColor = data.cor_fundo;
                     }
 
-                    // Define variáveis CSS para a cor primária (usada nos gráficos)
-                    document.documentElement.style.setProperty('--primary-color', data.cor_primaria);
-                    document.getElementById('lang-switch').style.backgroundColor = data.cor_primaria;
+                    // Cor Primária
+                    const primary = data.cor_primaria || '#E50914';
+                    document.documentElement.style.setProperty('--primary-color', primary);
+                    document.getElementById('lang-switch').style.backgroundColor = primary;
 
-                    // Mostrar/Esconder Seções
-                    if (!data.mostrar_grafico_paises) document.getElementById('section-paises').style.display = 'none';
-                    if (!data.mostrar_grafico_anos) document.getElementById('section-anos').style.display = 'none';
-                    
-                    // Idioma padrão
-                    applyTranslations(data.idioma_padrao || 'pt');
+                    // Mídia (Vídeo ou Imagem)
+                    if (data.midia_url) {
+                        const section = document.getElementById('midia-section');
+                        const content = document.getElementById('midia-content');
+                        section.classList.remove('hidden');
+                        
+                        if (data.midia_tipo === 'video') {
+                            content.innerHTML = `<video src="${data.midia_url}" autoplay loop muted playsinline class="midia-container"></video>`;
+                        } else {
+                            content.innerHTML = `<img src="${data.midia_url}" class="midia-container" alt="Destaque">`;
+                        }
+                    }
                 }
-            } catch (error) {
-                console.error("Erro ao carregar configs visuais, usando padrão.", error);
-                applyTranslations('pt'); // Padrão se falhar
+            } catch (err) {
+                console.error("Erro ao carregar Directus Config:", err);
             }
         }
 
-        // 2. Fetch Dados da Flask API e Popular
+        // 2. CARREGAR DADOS DO FLASK (KAGGLE)
         async function loadDashboardData() {
-            // A. Resumo (Cards)
             try {
-                const rResumo = await fetch(`${FLASK_API_URL}/resumo`);
-                const dResumo = await rResumo.json();
+                // KPIs
+                const resResumo = await fetch(`${FLASK_API}/resumo`);
+                const dataResumo = await resResumo.json();
                 
-                const total = dResumo.reduce((a, b) => a + b.count, 0);
-                const movies = dResumo.find(item => item.type === 'Movie')?.count || 0;
-                const shows = dResumo.find(item => item.type === 'TV Show')?.count || 0;
+                const total = dataResumo.reduce((acc, curr) => acc + curr.count, 0);
+                const movies = dataResumo.find(i => i.type === 'Movie')?.count || 0;
+                const shows = dataResumo.find(i => i.type === 'TV Show')?.count || 0;
 
-                const summaryHtml = `
-                    <div class="metric-card bg-gray-900/80 p-6 rounded-2xl border border-gray-800" style="border-top: 4px solid var(--primary-color, #E50914)">
-                        <p data-i18n="total_titles" class="text-sm text-gray-500 uppercase font-semibold">${i18n[currentLang].total_titles}</p>
-                        <p class="text-5xl font-extrabold tracking-tighter text-white count-up">${total}</p>
+                const lang = i18n[currentLang];
+                
+                document.getElementById('summary-container').innerHTML = `
+                    <div class="metric-card bg-gray-900/60 p-10 rounded-3xl border border-gray-800" style="border-bottom: 4px solid var(--primary-color)">
+                        <p class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-2">${lang.total_labels}</p>
+                        <h4 class="text-6xl font-black text-white">${total}</h4>
                     </div>
-                    <div class="metric-card bg-gray-900/80 p-6 rounded-2xl border border-gray-800">
-                        <p data-i18n="movies" class="text-sm text-gray-500 uppercase font-semibold">${i18n[currentLang].movies}</p>
-                        <p class="text-5xl font-extrabold tracking-tighter text-red-500 count-up">${movies}</p>
+                    <div class="metric-card bg-gray-900/60 p-10 rounded-3xl border border-gray-800">
+                        <p class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-2">${lang.movies_label}</p>
+                        <h4 class="text-6xl font-black text-red-600">${movies}</h4>
                     </div>
-                    <div class="metric-card bg-gray-900/80 p-6 rounded-2xl border border-gray-800">
-                        <p data-i18n="tv_shows" class="text-sm text-gray-500 uppercase font-semibold">${i18n[currentLang].tv_shows}</p>
-                        <p class="text-5xl font-extrabold tracking-tighter text-red-500 count-up">${shows}</p>
+                    <div class="metric-card bg-gray-900/60 p-10 rounded-3xl border border-gray-800">
+                        <p class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-2">${lang.shows_label}</p>
+                        <h4 class="text-6xl font-black text-red-600">${shows}</h4>
                     </div>
-                    <div class="metric-card bg-gray-900/80 p-6 rounded-2xl border border-gray-800">
-                        <p data-i18n="avg_release" class="text-sm text-gray-500 uppercase font-semibold">${i18n[currentLang].avg_release}</p>
-                        <p class="text-5xl font-extrabold tracking-tighter text-white count-up">2014</p> </div>
                 `;
-                document.getElementById('summary-container').innerHTML = summaryHtml;
-            } catch (e) { console.error("Erro resumo:", e); }
 
-            // B. Tabela de Títulos
-            try {
-                const rTitulos = await fetch(`${FLASK_API_URL}/titulos?limit=5`);
-                const dTitulos = await rTitulos.json();
-                let tableHtml = '';
-                dTitulos.forEach(t => {
-                    tableHtml += `
-                        <tr class="border-b border-gray-800 hover:bg-gray-800/30">
-                            <td class="px-4 py-3 font-mono text-gray-500">${t.show_id}</td>
-                            <td class="px-4 py-3">${t.type}</td>
-                            <td class="px-4 py-3 font-semibold text-white">${t.title}</td>
-                            <td class="px-4 py-3">${t.release_year}</td>
-                        </tr>
-                    `;
-                });
-                document.getElementById('titulos-body').innerHTML = tableHtml;
-            } catch (e) { console.error("Erro tabela:", e); }
-        }
-
-        // 3. Inicializar e Popular Gráficos (ECharts)
-        async function initCharts() {
-            const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#E50914';
-
-            // A. Gráfico Países
-            if (document.getElementById('chart-paises') && document.getElementById('chart-paises').clientHeight > 0) {
-                if(chartPaises) chartPaises.dispose();
-                chartPaises = echarts.init(document.getElementById('chart-paises'), 'dark');
+                // Tabela
+                const resTitulos = await fetch(`${FLASK_API}/titulos?limit=8`);
+                const dataTitulos = await resTitulos.json();
                 
+                document.getElementById('titulos-body').innerHTML = dataTitulos.map(t => `
+                    <tr class="hover:bg-red-600/5 transition-colors group">
+                        <td class="px-6 py-4 font-mono text-gray-600 text-xs">${t.show_id}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 rounded text-[10px] font-bold uppercase ${t.type === 'Movie' ? 'bg-blue-500/10 text-blue-500' : 'bg-green-500/10 text-green-500'}">
+                                ${t.type}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 font-bold text-gray-200 group-hover:text-white">${t.title}</td>
+                        <td class="px-6 py-4 text-gray-500">${t.release_year}</td>
+                    </tr>
+                `).join('');
+
+            } catch (err) {
+                console.error("Erro ao carregar dados do Flask:", err);
+            }
+        }
+
+        // 3. GERAR OPÇÕES DO ECHARTS
+        function getChartOption(tipo, cor, labels, values) {
+            const isPie = tipo === 'pie' || tipo === 'doughnut';
+            
+            let baseOpt = {
+                backgroundColor: 'transparent',
+                tooltip: { trigger: isPie ? 'item' : 'axis', backgroundColor: '#1f2937', borderColor: '#374151', textStyle: { color: '#fff' } },
+                color: [cor, '#3b82f6', '#10b981', '#f59e0b']
+            };
+
+            if (isPie) {
+                baseOpt.series = [{
+                    type: 'pie',
+                    radius: tipo === 'doughnut' ? ['45%', '75%'] : '75%',
+                    avoidLabelOverlap: false,
+                    itemStyle: { borderRadius: 8, borderColor: 'transparent', borderWidth: 2 },
+                    label: { show: false },
+                    data: labels.map((l, idx) => ({ name: l, value: values[idx] }))
+                }];
+            } else {
+                const isHorizontal = tipo === 'bar_horizontal';
+                baseOpt.xAxis = isHorizontal ? { type: 'value', splitLine: { show: false } } : { type: 'category', data: labels, axisLine: { lineStyle: { color: '#4b5563' } } };
+                baseOpt.yAxis = isHorizontal ? { type: 'category', data: labels, axisLine: { lineStyle: { color: '#4b5563' } } } : { type: 'value', splitLine: { lineStyle: { color: '#1f2937' } } };
+                
+                baseOpt.series = [{
+                    data: values,
+                    type: tipo === 'area' ? 'line' : (isHorizontal ? 'bar' : tipo),
+                    smooth: true,
+                    areaStyle: tipo === 'area' ? { opacity: 0.4 } : null,
+                    itemStyle: { borderRadius: tipo === 'bar' || isHorizontal ? [0, 5, 5, 0] : 0 }
+                }];
+            }
+            return baseOpt;
+        }
+
+        // 4. INICIALIZAR GRÁFICOS DINÂMICOS (JSON ARRAY)
+        async function initCharts() {
+            const container = document.getElementById('graficos-dinamicos');
+            container.innerHTML = '';
+            
+            const configGraficos = visualConfig.graficos || [];
+            let chartInstances = [];
+
+            for (let i = 0; i < configGraficos.length; i++) {
+                const g = configGraficos[i];
+                
+                // Criar elemento no DOM
+                const card = document.createElement('div');
+                card.className = 'bg-gray-900/40 p-8 rounded-3xl border border-gray-800 opacity-0 y-50-anim';
+                if (visualConfig.tema === 'light') card.classList.replace('bg-gray-900/40', 'bg-white');
+                
+                card.innerHTML = `
+                    <h3 class="text-2xl font-black mb-1 tracking-tighter">${g.titulo}</h3>
+                    <p class="text-sm text-gray-500 mb-8 font-medium">${g.sub}</p>
+                    <div id="chart-id-${i}" class="chart-container"></div>
+                `;
+                container.appendChild(card);
+
+                const chartDom = document.getElementById(`chart-id-${i}`);
+                const myChart = echarts.init(chartDom, visualConfig.tema === 'light' ? 'light' : 'dark');
+                chartInstances.push(myChart);
+
                 try {
-                    const response = await fetch(`${FLASK_API_URL}/top-paises`);
-                    const data = await response.json();
+                    const res = await fetch(`${FLASK_API}${g.endpoint}`);
+                    const rawData = await res.json();
                     
-                    chartPaises.setOption({
-                        backgroundColor: 'transparent',
-                        tooltip: { trigger: 'axis' },
-                        xAxis: { type: 'value', axisLine: { show: false } },
-                        yAxis: { type: 'category', data: data.map(item => item.pais).reverse(), axisLabel: { interval: 0 } },
-                        series: [{
-                            name: i18n[currentLang].total_titles,
-                            type: 'bar',
-                            data: data.map(item => item.total).reverse(),
-                            itemStyle: { color: primaryColor, borderRadius: [0, 10, 10, 0] },
-                            showBackground: true, backgroundStyle: { color: 'rgba(180, 180, 180, 0.1)', borderRadius: [0, 10, 10, 0] }
-                        }],
-                        grid: { left: '150px', right: '20px', bottom: '30px' }
-                    });
-                } catch (e) { console.error("Erro gráfico países:", e); }
+                    let labels = [];
+                    let values = [];
+
+                    if (g.endpoint === '/top-paises') {
+                        labels = rawData.map(d => d.pais);
+                        values = rawData.map(d => d.total);
+                        if (g.tipo === 'bar_horizontal') { labels.reverse(); values.reverse(); }
+                    } else {
+                        rawData.sort((a,b) => a.release_year - b.release_year);
+                        labels = rawData.map(d => d.release_year);
+                        values = rawData.map(d => d.count);
+                    }
+
+                    myChart.setOption(getChartOption(g.tipo, g.cor, labels, values));
+                } catch (err) { console.error("Erro no gráfico", i, err); }
             }
 
-            // B. Gráfico Anos
-            if (document.getElementById('chart-anos') && document.getElementById('chart-anos').clientHeight > 0) {
-                if(chartAnos) chartAnos.dispose();
-                chartAnos = echarts.init(document.getElementById('chart-anos'), 'dark');
-
-                try {
-                    const response = await fetch(`${FLASK_API_URL}/lancamentos-ano`);
-                    let data = await response.json();
-                    data.sort((a,b) => a.release_year - b.release_year); // Ordena ascendente
-
-                    chartAnos.setOption({
-                        backgroundColor: 'transparent',
-                        tooltip: { trigger: 'axis' },
-                        xAxis: { type: 'category', data: data.map(item => item.release_year) },
-                        yAxis: { type: 'value', splitLine: { lineStyle: { color: '#333' } } },
-                        series: [{
-                            name: i18n[currentLang].total_titles,
-                            type: 'line',
-                            data: data.map(item => item.count),
-                            smooth: true,
-                            symbol: 'none',
-                            lineStyle: { color: primaryColor, width: 3 },
-                            areaStyle: {
-                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                    { offset: 0, color: `${primaryColor}aa` },
-                                    { offset: 1, color: `${primaryColor}00` }
-                                ])
-                            }
-                        }]
-                    });
-                } catch (e) { console.error("Erro gráfico anos:", e); }
-            }
+            window.addEventListener('resize', () => chartInstances.forEach(c => c.resize()));
         }
 
-        // 4. Animações de Movimento (GSAP - Inspirado OnePiece)
-        function initAnimations() {
-            // Animação de Entrada (Intro)
-            const tlIntro = gsap.timeline();
-            tlIntro.to('#curtain', { duration: 1, yPercent: -100, ease: "power4.inOut", delay: 0.5 })
-                   .to('#netflix-logo', { duration: 0.8, scale: 1, rotate: 0, opacity: 1, ease: "back.out(1.7)" }, "-=0.2")
-                   .from('header h1', { duration: 0.5, x: -50, opacity: 0 }, "-=0.4")
-                   .to('.y-20-anim', { duration: 1, y: 0, opacity: 1, stagger: 0.2, ease: "power3.out" }, "-=0.3")
-                   .to('.metric-card', { duration: 0.6, scale: 1, opacity: 1, stagger: 0.1, ease: "back.out(1.2)" }, "-=0.5")
-                   .add(() => {
-                        // Inicia os gráficos após a intro e quando o container estiver visível
-                        initCharts();
-                        // GSAP ScrollTriggers para gráficos e tabelas
-                        document.querySelectorAll('.y-50-anim').forEach(el => {
-                            gsap.to(el, {
-                                scrollTrigger: { trigger: el, start: "top 80%", toggleActions: "play none none none" },
-                                y: 0, opacity: 1, duration: 1, ease: "power3.out"
-                            });
-                        });
-                   });
+        // 5. ANIMAÇÕES GSAP
+        function runAnimations() {
+            const tl = gsap.timeline();
+            
+            tl.to('#curtain', { yPercent: -100, duration: 1.2, ease: "expo.inOut", delay: 0.5 })
+              .to('#netflix-logo', { scale: 1, rotate: 0, opacity: 1, duration: 0.8, ease: "back.out(1.7)" }, "-=0.4")
+              .to('.y-20-anim', { y: 0, opacity: 1, duration: 1, stagger: 0.2, ease: "power4.out" }, "-=0.5")
+              .to('.metric-card', { scale: 1, opacity: 1, duration: 0.8, stagger: 0.1, ease: "back.out(1.2)" }, "-=0.8")
+              .add(() => {
+                  initCharts();
+                  // ScrollTriggers para os elementos que surgem depois
+                  document.querySelectorAll('.y-50-anim').forEach(el => {
+                      gsap.to(el, {
+                          scrollTrigger: { trigger: el, start: "top 85%" },
+                          y: 0, opacity: 1, duration: 1.2, ease: "power3.out"
+                      });
+                  });
+              });
         }
 
-        // Execução ao carregar
-        window.addEventListener('load', async () => {
-            await loadVisualConfig(); // 1. Pega visual do Directus
-            await loadDashboardData(); // 2. Pega dados do Kaggle (Flask)
-            initAnimations(); // 3. Roda animações (que chamam gráficos)
+        // ALTERNAR IDIOMA
+        document.getElementById('lang-switch').addEventListener('click', () => {
+            currentLang = currentLang === 'pt' ? 'en' : 'pt';
+            const lang = i18n[currentLang];
+            
+            document.getElementById('hero-title').innerText = lang.hero_title;
+            document.getElementById('hero-subtitle').innerText = lang.hero_subtitle;
+            document.getElementById('table-title').innerText = lang.table_title;
+            document.getElementById('th-type').innerText = lang.th_type;
+            document.getElementById('th-title').innerText = lang.th_title;
+            document.getElementById('th-year').innerText = lang.th_year;
+            
+            loadDashboardData(); // Recarrega KPIs com novos nomes
+            initCharts(); // Recarrega legendas dos gráficos
         });
 
-        window.addEventListener('resize', () => {
-            if(chartPaises) chartPaises.resize();
-            if(chartAnos) chartAnos.resize();
+        // INICIALIZAÇÃO TOTAL
+        window.addEventListener('load', async () => {
+            gsap.registerPlugin(ScrollTrigger);
+            await loadVisualConfig();
+            await loadDashboardData();
+            runAnimations();
         });
     </script>
 </body>
