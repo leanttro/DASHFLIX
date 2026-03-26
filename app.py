@@ -43,6 +43,22 @@ def run_etl():
     except Exception as e:
         return jsonify({"sucesso": False, "mensagem": str(e)}), 500
 
+@app.route('/api/save-config', methods=['POST'])
+def save_config():
+    try:
+        config = request.json
+        # O token já está no cabeçalho, mas usamos o token do servidor
+        headers = get_headers()
+        # Atualiza o item 1 da coleção configuracoes_dashflix
+        url = f"{DIRECTUS_URL}/items/configuracoes_dashflix/1"
+        r = requests.patch(url, headers=headers, json=config)
+        if r.status_code in (200, 204):
+            return jsonify({"sucesso": True, "mensagem": "Configurações salvas"})
+        else:
+            return jsonify({"sucesso": False, "mensagem": r.text}), r.status_code
+    except Exception as e:
+        return jsonify({"sucesso": False, "mensagem": str(e)}), 500
+
 @app.route('/api/resumo', methods=['GET'])
 def get_resumo():
     url = f"{DIRECTUS_URL}/items/netflix_titles?aggregate[count]=*&groupBy[]=type"
