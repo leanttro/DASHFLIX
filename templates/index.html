@@ -9,14 +9,47 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
-    
     <style>
-        body { font-family: 'Poppins', sans-serif; transition: background 0.5s ease; overflow-x: hidden; }
-        .chart-container { width: 100%; height: 400px; opacity: 0; transform: translateY(50px); }
-        .metric-card { opacity: 0; transform: scale(0.8); }
-        /* Animação de entrada do Logo (Inspirado OnePiece) */
-        #netflix-logo { transform: rotate(-10deg) scale(0); opacity: 0; }
-        #curtain { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; justify-content: center; align-items: center; color: #E50914; font-size: 3rem; font-weight: 800; }
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            transition: background 0.5s ease; 
+            overflow-x: hidden; 
+        }
+        .chart-container { 
+            width: 100%; 
+            height: 400px; 
+            opacity: 0; 
+            transform: translateY(50px); 
+        }
+        .metric-card { 
+            opacity: 0; 
+            transform: scale(0.8); 
+        }
+        #netflix-logo { 
+            transform: rotate(-10deg) scale(0); 
+            opacity: 0; 
+        }
+        #curtain { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: #000; 
+            z-index: 100; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            color: #E50914; 
+            font-size: 3rem; 
+            font-weight: 800; 
+        }
+        .midia-container { 
+            width: 100%; 
+            max-height: 500px; 
+            object-fit: cover; 
+            border-radius: 1rem; 
+        }
     </style>
 </head>
 <body class="bg-black text-white antialiased">
@@ -29,9 +62,7 @@
             <h1 class="text-2xl font-extrabold tracking-tighter text-white">DASH<span class="text-red-600">FLIX</span></h1>
         </div>
         <div class="flex items-center gap-4">
-            <button id="lang-switch" class="bg-gray-800 text-white px-4 py-1.5 rounded-full text-sm font-semibold hover:bg-red-600 transition duration-300">
-                EN/PT
-            </button>
+            <button id="lang-switch" class="bg-gray-800 text-white px-4 py-1.5 rounded-full text-sm font-semibold hover:bg-red-600 transition duration-300">EN/PT</button>
             <a href="painel.html" class="text-gray-400 hover:text-white text-sm">Painel</a>
         </div>
     </header>
@@ -39,296 +70,196 @@
     <main class="pt-28 pb-20 px-4 md:px-10 max-w-7xl mx-auto">
         
         <section class="mb-16 text-center">
-            <h2 data-i18n="hero_title" class="text-5xl md:text-7xl font-extrabold tracking-tighter mb-4 opacity-0 y-20-anim">Métricas Premium da Kaggle</h2>
-            <p data-i18n="hero_subtitle" class="text-xl text-gray-400 max-w-2xl mx-auto mb-10 opacity-0 y-20-anim">Visualização interativa e dinâmica do dataset "Netflix Shows", populado via Directus e Flask API.</p>
-            
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="summary-container">
-                </div>
+            <h2 id="hero-title" class="text-5xl md:text-7xl font-extrabold tracking-tighter mb-4 opacity-0 y-20-anim">Métricas Premium</h2>
+            <p id="hero-subtitle" class="text-xl text-gray-400 max-w-2xl mx-auto mb-10 opacity-0 y-20-anim">Visualização interativa baseada no Kaggle</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="summary-container"></div>
         </section>
 
-        <section class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-            
-            <div id="section-paises" class="bg-gray-900/50 p-6 rounded-2xl border border-gray-800 opacity-0 y-50-anim">
-                <h3 data-i18n="title_paises" class="text-2xl font-bold mb-6 tracking-tight">Top 10 Países Produtores</h3>
-                <div id="chart-paises" class="chart-container"></div>
+        <section id="midia-section" class="mb-16 opacity-0 y-20-anim hidden">
+            <div class="bg-gray-900/50 p-4 rounded-2xl border border-gray-800 flex justify-center">
+                <div id="midia-content" class="w-full"></div>
             </div>
-
-            <div id="section-anos" class="bg-gray-900/50 p-6 rounded-2xl border border-gray-800 opacity-0 y-50-anim">
-                <h3 data-i18n="title_anos" class="text-2xl font-bold mb-6 tracking-tight">Evolução de Adições (Últimos 20 Anos)</h3>
-                <div id="chart-anos" class="chart-container"></div>
-            </div>
-
         </section>
+
+        <section id="graficos-dinamicos" class="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-16"></section>
 
         <section class="mt-16 bg-gray-900/50 p-6 rounded-2xl border border-gray-800 opacity-0 y-50-anim">
-            <h3 data-i18n="title_titulos" class="text-2xl font-bold mb-6 tracking-tight">Últimos Títulos Adicionados</h3>
+            <h3 class="text-2xl font-bold mb-6 tracking-tight">Últimos Títulos Adicionados</h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left text-gray-300">
                     <thead class="text-xs text-gray-500 uppercase border-b border-gray-800">
                         <tr>
                             <th class="px-4 py-3">ID</th>
-                            <th data-i18n="table_type" class="px-4 py-3">Tipo</th>
-                            <th data-i18n="table_title" class="px-4 py-3">Título</th>
-                            <th data-i18n="table_release" class="px-4 py-3">Lançamento</th>
+                            <th class="px-4 py-3">Tipo</th>
+                            <th class="px-4 py-3">Título</th>
+                            <th class="px-4 py-3">Lançamento</th>
                         </tr>
                     </thead>
-                    <tbody id="titulos-body">
-                        </tbody>
+                    <tbody id="titulos-body"></tbody>
                 </table>
             </div>
         </section>
 
     </main>
 
-    <footer class="text-center p-10 text-gray-600 border-t border-gray-800 mt-10">
-        DASHFLIX - Powered by Contabo, Directus, Dokploy & GSAP.
-    </footer>
-
     <script>
-        // CONFIGURAÇÕES DE API (Altere para os seus IPs da Contabo)
         const FLASK_API_URL = 'http://localhost:5001/api'; 
-        const DIRECTUS_URL = 'http://localhost:8055'; // Para pegar as configurações visuais
-
-        // SISTEMA DE TRADUÇÃO (EN/PT)
-        const i18n = {
-            pt: {
-                hero_title: "Métricas Premium da Kaggle",
-                hero_subtitle: "Visualização interativa e dinâmica do dataset \"Netflix Shows\", populado via Directus e Flask API.",
-                title_paises: "Top 10 Países Produtores",
-                title_anos: "Evolução de Adições (Últimos 20 Anos)",
-                title_titulos: "Últimos Títulos Adicionados",
-                table_type: "Tipo",
-                table_title: "Título",
-                table_release: "Lançamento",
-                total_titles: "Total de Títulos",
-                movies: "Filmes",
-                tv_shows: "Séries",
-                avg_release: "Ano Médio Lançamento"
-            },
-            en: {
-                hero_title: "Premium Kaggle Metrics",
-                hero_subtitle: "Interactive and dynamic visualization of the \"Netflix Shows\" dataset, powered by Directus and Flask API.",
-                title_paises: "Top 10 Producing Countries",
-                title_anos: "Additions Evolution (Last 20 Years)",
-                title_titulos: "Latest Titles Added",
-                table_type: "Type",
-                table_title: "Title",
-                table_release: "Release",
-                total_titles: "Total Titles",
-                movies: "Movies",
-                tv_shows: "TV Shows",
-                avg_release: "Avg. Release Year"
-            }
-        };
-
+        const DIRECTUS_URL = 'http://localhost:8055';
+        let visualConfig = {};
         let currentLang = 'pt';
 
-        // Função para aplicar traduções
-        function applyTranslations(lang) {
-            currentLang = lang;
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (i18n[lang] && i18n[lang][key]) {
-                    el.innerText = i18n[lang][key];
-                }
-            });
-            // Recarrega gráficos para atualizar legendas se necessário
-            initCharts(); 
-        }
+        const translations = {
+            pt: { hero_title: "Métricas Premium", hero_subtitle: "Visualização interativa baseada no Kaggle", total: "Total Títulos", movies: "Filmes", shows: "Séries" },
+            en: { hero_title: "Premium Metrics", hero_subtitle: "Interactive visualization based on Kaggle", total: "Total Titles", movies: "Movies", shows: "TV Shows" }
+        };
 
-        document.getElementById('lang-switch').addEventListener('click', () => {
-            applyTranslations(currentLang === 'pt' ? 'en' : 'pt');
-        });
-    </script>
-
-    <script>
-        gsap.registerPlugin(ScrollTrigger);
-        let chartPaises, chartAnos;
-
-        // 1. Carregar Configurações Visuais do Directus
         async function loadVisualConfig() {
             try {
-                // Supondo que você criou a collection 'configuracoes_dashflix' e o item ID 1
                 const response = await fetch(`${DIRECTUS_URL}/items/configuracoes_dashflix/1`);
                 const { data } = await response.json();
-
                 if (data) {
-                    // Aplicar Fonte
-                    document.body.style.fontFamily = `'${data.fonte}', sans-serif`;
-                    
-                    // Aplicar Cores
+                    visualConfig = data;
+                    document.body.style.fontFamily = `'${data.fonte || 'Poppins'}', sans-serif`;
                     if (data.tema === 'light') {
                         document.body.classList.remove('bg-black', 'text-white');
                         document.body.classList.add('bg-white', 'text-gray-900');
-                        document.querySelectorAll('header, footer, div.bg-gray-900\\/50').forEach(el => el.classList.add('bg-gray-100', 'border-gray-200'));
+                        document.querySelectorAll('header, div.bg-gray-900\\/50').forEach(el => el.classList.add('bg-gray-100', 'border-gray-200'));
                     } else {
-                        // Força a cor de fundo do Directus se definida
-                        document.body.style.backgroundColor = data.cor_fundo;
+                        document.body.style.backgroundColor = data.cor_fundo || '#000000';
                     }
-
-                    // Define variáveis CSS para a cor primária (usada nos gráficos)
-                    document.documentElement.style.setProperty('--primary-color', data.cor_primaria);
-                    document.getElementById('lang-switch').style.backgroundColor = data.cor_primaria;
-
-                    // Mostrar/Esconder Seções
-                    if (!data.mostrar_grafico_paises) document.getElementById('section-paises').style.display = 'none';
-                    if (!data.mostrar_grafico_anos) document.getElementById('section-anos').style.display = 'none';
+                    document.documentElement.style.setProperty('--primary-color', data.cor_primaria || '#E50914');
+                    document.getElementById('lang-switch').style.backgroundColor = data.cor_primaria || '#E50914';
                     
-                    // Idioma padrão
-                    applyTranslations(data.idioma_padrao || 'pt');
+                    if (data.midia_url) {
+                        const midiaSection = document.getElementById('midia-section');
+                        midiaSection.classList.remove('hidden');
+                        document.getElementById('midia-content').innerHTML = data.midia_tipo === 'video' 
+                            ? `<video src="${data.midia_url}" autoplay loop muted class="midia-container"></video>`
+                            : `<img src="${data.midia_url}" class="midia-container">`;
+                    }
                 }
-            } catch (error) {
-                console.error("Erro ao carregar configs visuais, usando padrão.", error);
-                applyTranslations('pt'); // Padrão se falhar
-            }
+            } catch (error) { console.error(error); }
         }
 
-        // 2. Fetch Dados da Flask API e Popular
         async function loadDashboardData() {
-            // A. Resumo (Cards)
             try {
                 const rResumo = await fetch(`${FLASK_API_URL}/resumo`);
                 const dResumo = await rResumo.json();
-                
                 const total = dResumo.reduce((a, b) => a + b.count, 0);
                 const movies = dResumo.find(item => item.type === 'Movie')?.count || 0;
                 const shows = dResumo.find(item => item.type === 'TV Show')?.count || 0;
 
-                const summaryHtml = `
-                    <div class="metric-card bg-gray-900/80 p-6 rounded-2xl border border-gray-800" style="border-top: 4px solid var(--primary-color, #E50914)">
-                        <p data-i18n="total_titles" class="text-sm text-gray-500 uppercase font-semibold">${i18n[currentLang].total_titles}</p>
-                        <p class="text-5xl font-extrabold tracking-tighter text-white count-up">${total}</p>
+                const lang = translations[currentLang];
+                document.getElementById('summary-container').innerHTML = `
+                    <div class="metric-card bg-gray-900/80 p-6 rounded-2xl border border-gray-800" style="border-top: 4px solid var(--primary-color)">
+                        <p class="text-sm text-gray-500 uppercase font-semibold">${lang.total}</p>
+                        <p class="text-5xl font-extrabold tracking-tighter text-white">${total}</p>
                     </div>
                     <div class="metric-card bg-gray-900/80 p-6 rounded-2xl border border-gray-800">
-                        <p data-i18n="movies" class="text-sm text-gray-500 uppercase font-semibold">${i18n[currentLang].movies}</p>
-                        <p class="text-5xl font-extrabold tracking-tighter text-red-500 count-up">${movies}</p>
+                        <p class="text-sm text-gray-500 uppercase font-semibold">${lang.movies}</p>
+                        <p class="text-5xl font-extrabold tracking-tighter text-red-500">${movies}</p>
                     </div>
                     <div class="metric-card bg-gray-900/80 p-6 rounded-2xl border border-gray-800">
-                        <p data-i18n="tv_shows" class="text-sm text-gray-500 uppercase font-semibold">${i18n[currentLang].tv_shows}</p>
-                        <p class="text-5xl font-extrabold tracking-tighter text-red-500 count-up">${shows}</p>
+                        <p class="text-sm text-gray-500 uppercase font-semibold">${lang.shows}</p>
+                        <p class="text-5xl font-extrabold tracking-tighter text-red-500">${shows}</p>
                     </div>
-                    <div class="metric-card bg-gray-900/80 p-6 rounded-2xl border border-gray-800">
-                        <p data-i18n="avg_release" class="text-sm text-gray-500 uppercase font-semibold">${i18n[currentLang].avg_release}</p>
-                        <p class="text-5xl font-extrabold tracking-tighter text-white count-up">2014</p> </div>
                 `;
-                document.getElementById('summary-container').innerHTML = summaryHtml;
-            } catch (e) { console.error("Erro resumo:", e); }
-
-            // B. Tabela de Títulos
-            try {
+                
                 const rTitulos = await fetch(`${FLASK_API_URL}/titulos?limit=5`);
                 const dTitulos = await rTitulos.json();
-                let tableHtml = '';
-                dTitulos.forEach(t => {
-                    tableHtml += `
-                        <tr class="border-b border-gray-800 hover:bg-gray-800/30">
-                            <td class="px-4 py-3 font-mono text-gray-500">${t.show_id}</td>
-                            <td class="px-4 py-3">${t.type}</td>
-                            <td class="px-4 py-3 font-semibold text-white">${t.title}</td>
-                            <td class="px-4 py-3">${t.release_year}</td>
-                        </tr>
-                    `;
-                });
-                document.getElementById('titulos-body').innerHTML = tableHtml;
-            } catch (e) { console.error("Erro tabela:", e); }
+                document.getElementById('titulos-body').innerHTML = dTitulos.map(t => `
+                    <tr class="border-b border-gray-800 hover:bg-gray-800/30">
+                        <td class="px-4 py-3 font-mono text-gray-500">${t.show_id}</td>
+                        <td class="px-4 py-3">${t.type}</td>
+                        <td class="px-4 py-3 font-semibold text-white">${t.title}</td>
+                        <td class="px-4 py-3">${t.release_year}</td>
+                    </tr>
+                `).join('');
+            } catch (e) { console.error(e); }
         }
 
-        // 3. Inicializar e Popular Gráficos (ECharts)
+        function getChartOption(type, color, labels, values) {
+            const isPie = type === 'pie' || type === 'doughnut';
+            let opt = {
+                backgroundColor: 'transparent',
+                tooltip: { trigger: isPie ? 'item' : 'axis' },
+                color: [color, '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de']
+            };
+            if (isPie) {
+                opt.series = [{ 
+                    type: 'pie', 
+                    radius: type === 'doughnut' ? ['40%', '70%'] : '70%', 
+                    data: labels.map((l, i) => ({ name: l, value: values[i] })), 
+                    itemStyle: { borderRadius: 10, borderColor: '#000', borderWidth: 2 } 
+                }];
+            } else {
+                const isH = type === 'bar_horizontal';
+                opt.xAxis = isH ? { type: 'value' } : { type: 'category', data: labels };
+                opt.yAxis = isH ? { type: 'category', data: labels } : { type: 'value' };
+                opt.series = [{ 
+                    type: type === 'area' ? 'line' : (isH ? 'bar' : type), 
+                    data: values, 
+                    smooth: true, 
+                    areaStyle: type === 'area' ? { opacity: 0.3 } : null,
+                    itemStyle: { borderRadius: (type === 'bar' || isH) ? [5, 5, 0, 0] : 0 }
+                }];
+            }
+            return opt;
+        }
+
         async function initCharts() {
-            const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#E50914';
+            const container = document.getElementById('graficos-dinamicos');
+            container.innerHTML = '';
+            const graficos = visualConfig.graficos || [];
+            let instancias = [];
 
-            // A. Gráfico Países
-            if (document.getElementById('chart-paises') && document.getElementById('chart-paises').clientHeight > 0) {
-                if(chartPaises) chartPaises.dispose();
-                chartPaises = echarts.init(document.getElementById('chart-paises'), 'dark');
+            for (let i = 0; i < graficos.length; i++) {
+                const g = graficos[i];
+                const div = document.createElement('div');
+                div.className = 'bg-gray-900/50 p-6 rounded-2xl border border-gray-800 opacity-0 y-50-anim';
+                if (visualConfig.tema === 'light') div.classList.add('bg-gray-100', 'border-gray-200');
                 
-                try {
-                    const response = await fetch(`${FLASK_API_URL}/top-paises`);
-                    const data = await response.json();
-                    
-                    chartPaises.setOption({
-                        backgroundColor: 'transparent',
-                        tooltip: { trigger: 'axis' },
-                        xAxis: { type: 'value', axisLine: { show: false } },
-                        yAxis: { type: 'category', data: data.map(item => item.pais).reverse(), axisLabel: { interval: 0 } },
-                        series: [{
-                            name: i18n[currentLang].total_titles,
-                            type: 'bar',
-                            data: data.map(item => item.total).reverse(),
-                            itemStyle: { color: primaryColor, borderRadius: [0, 10, 10, 0] },
-                            showBackground: true, backgroundStyle: { color: 'rgba(180, 180, 180, 0.1)', borderRadius: [0, 10, 10, 0] }
-                        }],
-                        grid: { left: '150px', right: '20px', bottom: '30px' }
-                    });
-                } catch (e) { console.error("Erro gráfico países:", e); }
-            }
+                div.innerHTML = `
+                    <h3 class="text-2xl font-bold mb-2 tracking-tight">${g.titulo}</h3>
+                    <p class="text-sm text-gray-400 mb-6">${g.sub}</p>
+                    <div id="chart-${i}" style="width: 100%; height: 400px;"></div>
+                `;
+                container.appendChild(div);
 
-            // B. Gráfico Anos
-            if (document.getElementById('chart-anos') && document.getElementById('chart-anos').clientHeight > 0) {
-                if(chartAnos) chartAnos.dispose();
-                chartAnos = echarts.init(document.getElementById('chart-anos'), 'dark');
+                const chart = echarts.init(document.getElementById(`chart-${i}`), visualConfig.tema === 'light' ? 'light' : 'dark');
+                instancias.push(chart);
 
                 try {
-                    const response = await fetch(`${FLASK_API_URL}/lancamentos-ano`);
-                    let data = await response.json();
-                    data.sort((a,b) => a.release_year - b.release_year); // Ordena ascendente
-
-                    chartAnos.setOption({
-                        backgroundColor: 'transparent',
-                        tooltip: { trigger: 'axis' },
-                        xAxis: { type: 'category', data: data.map(item => item.release_year) },
-                        yAxis: { type: 'value', splitLine: { lineStyle: { color: '#333' } } },
-                        series: [{
-                            name: i18n[currentLang].total_titles,
-                            type: 'line',
-                            data: data.map(item => item.count),
-                            smooth: true,
-                            symbol: 'none',
-                            lineStyle: { color: primaryColor, width: 3 },
-                            areaStyle: {
-                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                    { offset: 0, color: `${primaryColor}aa` },
-                                    { offset: 1, color: `${primaryColor}00` }
-                                ])
-                            }
-                        }]
-                    });
-                } catch (e) { console.error("Erro gráfico anos:", e); }
+                    const r = await fetch(`${FLASK_API_URL}${g.endpoint}`);
+                    const data = await r.json();
+                    let labels = g.endpoint === '/top-paises' ? data.map(item => item.pais) : data.sort((a,b)=>a.release_year-b.release_year).map(item => item.release_year);
+                    let values = g.endpoint === '/top-paises' ? data.map(item => item.total) : data.map(item => item.count);
+                    if(g.tipo === 'bar_horizontal' && g.endpoint === '/top-paises') { labels.reverse(); values.reverse(); }
+                    chart.setOption(getChartOption(g.tipo, g.cor, labels, values));
+                } catch (e) { console.error(e); }
             }
+            window.addEventListener('resize', () => instancias.forEach(ins => ins.resize()));
         }
 
-        // 4. Animações de Movimento (GSAP - Inspirado OnePiece)
-        function initAnimations() {
-            // Animação de Entrada (Intro)
-            const tlIntro = gsap.timeline();
-            tlIntro.to('#curtain', { duration: 1, yPercent: -100, ease: "power4.inOut", delay: 0.5 })
-                   .to('#netflix-logo', { duration: 0.8, scale: 1, rotate: 0, opacity: 1, ease: "back.out(1.7)" }, "-=0.2")
-                   .from('header h1', { duration: 0.5, x: -50, opacity: 0 }, "-=0.4")
-                   .to('.y-20-anim', { duration: 1, y: 0, opacity: 1, stagger: 0.2, ease: "power3.out" }, "-=0.3")
-                   .to('.metric-card', { duration: 0.6, scale: 1, opacity: 1, stagger: 0.1, ease: "back.out(1.2)" }, "-=0.5")
-                   .add(() => {
-                        // Inicia os gráficos após a intro e quando o container estiver visível
-                        initCharts();
-                        // GSAP ScrollTriggers para gráficos e tabelas
-                        document.querySelectorAll('.y-50-anim').forEach(el => {
-                            gsap.to(el, {
-                                scrollTrigger: { trigger: el, start: "top 80%", toggleActions: "play none none none" },
-                                y: 0, opacity: 1, duration: 1, ease: "power3.out"
-                            });
-                        });
-                   });
-        }
-
-        // Execução ao carregar
-        window.addEventListener('load', async () => {
-            await loadVisualConfig(); // 1. Pega visual do Directus
-            await loadDashboardData(); // 2. Pega dados do Kaggle (Flask)
-            initAnimations(); // 3. Roda animações (que chamam gráficos)
+        document.getElementById('lang-switch').addEventListener('click', () => {
+            currentLang = currentLang === 'pt' ? 'en' : 'pt';
+            document.getElementById('hero-title').innerText = translations[currentLang].hero_title;
+            document.getElementById('hero-subtitle').innerText = translations[currentLang].hero_subtitle;
+            loadDashboardData();
+            initCharts();
         });
 
-        window.addEventListener('resize', () => {
-            if(chartPaises) chartPaises.resize();
-            if(chartAnos) chartAnos.resize();
+        window.addEventListener('load', async () => {
+            await loadVisualConfig();
+            await loadDashboardData();
+            gsap.timeline()
+                .to('#curtain', { duration: 1, yPercent: -100, ease: "power4.inOut" })
+                .to('#netflix-logo', { duration: 0.8, scale: 1, rotate: 0, opacity: 1, ease: "back.out(1.7)" }, "-=0.2")
+                .to('.y-20-anim', { duration: 1, y: 0, opacity: 1, stagger: 0.2, ease: "power3.out" })
+                .add(() => {
+                    initCharts();
+                    document.querySelectorAll('.y-50-anim').forEach(el => gsap.to(el, { scrollTrigger: { trigger: el, start: "top 80%" }, y: 0, opacity: 1, duration: 1, ease: "power3.out" }));
+                });
         });
     </script>
 </body>
