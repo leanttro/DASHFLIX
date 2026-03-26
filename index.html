@@ -20,8 +20,7 @@
         .chart-container { 
             width: 100%; 
             height: 400px; 
-            opacity: 0; 
-            transform: translateY(50px); 
+            opacity: 1; 
         }
         .metric-card { 
             opacity: 0; 
@@ -95,7 +94,6 @@
 
     <main class="pt-32 pb-20 px-4 md:px-10 max-w-7xl mx-auto">
         
-        <!-- Cards de métricas -->
         <section class="mb-20 text-center">
             <h2 id="hero-title" class="text-5xl md:text-8xl font-extrabold tracking-tighter mb-6 opacity-0 y-20-anim">
                 Métricas Premium
@@ -108,15 +106,17 @@
             </div>
         </section>
 
-        <!-- Mídia configurável (opcional) -->
         <section id="midia-section" class="mb-20 opacity-0 y-20-anim hidden">
             <div class="bg-gray-900/40 p-2 rounded-3xl border border-gray-800">
                 <div id="midia-content"></div>
             </div>
         </section>
 
-        <!-- Filtros interativos -->
         <div class="mb-12 p-6 rounded-2xl bg-gray-900/30 border border-gray-800 backdrop-blur-sm">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-300">Filtros Globais</h3>
+                <button onclick="clearFilters()" class="text-sm bg-red-600/20 text-red-500 px-3 py-1 rounded hover:bg-red-600/40 transition">Limpar Filtros</button>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                     <label id="filter-year-label" class="block text-sm font-semibold text-gray-400 mb-2">Ano</label>
@@ -147,12 +147,9 @@
             </div>
         </div>
 
-        <!-- Gráficos dinâmicos (agora interativos e baseados nos filtros) -->
         <section id="graficos-dinamicos" class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
-            <!-- Os gráficos serão inseridos via JS -->
         </section>
 
-        <!-- Tabela de títulos (com filtros) -->
         <section class="mt-20 bg-gray-900/30 p-8 rounded-3xl border border-gray-800 opacity-0 y-50-anim">
             <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
                 <h3 id="table-title" class="text-3xl font-bold tracking-tight">Últimos Lançamentos</h3>
@@ -184,17 +181,15 @@
     </footer>
 
     <script>
-        // ==================== CONFIGURAÇÕES GLOBAIS ====================
         const FLASK_API = "https://api-dashflix.leanttro.com/api";
         const DIRECTUS_API = "https://api.leanttro.com";
 
         let visualConfig = {};
         let currentLang = 'pt';
-        let allData = [];           // Todos os títulos carregados
-        let filteredData = [];      // Dados após aplicação dos filtros
+        let allData = [];
+        let filteredData = [];
         let chartInstances = {};
 
-        // ==================== TRADUÇÕES ====================
         const i18n = {
             pt: {
                 hero_title: "Métricas Premium",
@@ -234,7 +229,6 @@
             }
         };
 
-        // ==================== CARREGAR CONFIGURAÇÃO VISUAL (DIRECTUS) ====================
         async function loadVisualConfig() {
             try {
                 const response = await fetch(`${DIRECTUS_API}/items/configuracoes_dashflix/1`);
@@ -271,16 +265,11 @@
             }
         }
 
-        // ==================== CARREGAR TODOS OS TÍTULOS ====================
         async function loadAllTitles() {
             try {
                 const response = await fetch(`${FLASK_API}/titulos?limit=10000`);
-                const data = await response.json();
-                allData = data;
-                console.log(`Carregados ${allData.length} títulos.`);
-                // Preencher os filtros com valores únicos
+                allData = await response.json();
                 populateFilters();
-                // Aplicar filtros iniciais (todos)
                 applyFilters();
                 return true;
             } catch (err) {
@@ -289,38 +278,35 @@
             }
         }
 
-        // ==================== PREENCHER OS DROPDOWNS DE FILTRO ====================
         function populateFilters() {
             const years = [...new Set(allData.map(item => item.release_year).filter(y => y))].sort((a,b)=>b-a);
             const countries = [...new Set(allData.flatMap(item => {
                 if (!item.country) return [];
-                // Pegar primeiro país (separado por vírgula)
                 return item.country.split(',').map(c => c.trim());
             }))].sort();
             const ratings = [...new Set(allData.map(item => item.rating).filter(r => r))].sort();
 
             const yearSelect = document.getElementById('filter-year');
-            yearSelect.innerHTML = '<option value="">' + (currentLang === 'pt' ? 'Todos' : 'All') + '</option>';
-            years.forEach(y => {
-                yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
-            });
+            yearSelect.innerHTML = '<option value="">' + i18n[currentLang].all + '</option>';
+            years.forEach(y => { yearSelect.innerHTML += `<option value="${y}">${y}</option>`; });
 
             const countrySelect = document.getElementById('filter-country');
-            countrySelect.innerHTML = '<option value="">' + (currentLang === 'pt' ? 'Todos' : 'All') + '</option>';
-            countries.forEach(c => {
-                if (c) countrySelect.innerHTML += `<option value="${c}">${c}</option>`;
-            });
+            countrySelect.innerHTML = '<option value="">' + i18n[currentLang].all + '</option>';
+            countries.forEach(c => { if (c) countrySelect.innerHTML += `<option value="${c}">${c}</option>`; });
 
             const ratingSelect = document.getElementById('filter-rating');
-            ratingSelect.innerHTML = '<option value="">' + (currentLang === 'pt' ? 'Todos' : 'All') + '</option>';
-            ratings.forEach(r => {
-                if (r) ratingSelect.innerHTML += `<option value="${r}">${r}</option>`;
-            });
-
-            // Tipo já tem opções fixas
+            ratingSelect.innerHTML = '<option value="">' + i18n[currentLang].all + '</option>';
+            ratings.forEach(r => { if (r) ratingSelect.innerHTML += `<option value="${r}">${r}</option>`; });
         }
 
-        // ==================== APLICAR FILTROS ====================
+        function clearFilters() {
+            document.getElementById('filter-year').value = '';
+            document.getElementById('filter-country').value = '';
+            document.getElementById('filter-rating').value = '';
+            document.getElementById('filter-type').value = '';
+            applyFilters();
+        }
+
         function applyFilters() {
             const year = document.getElementById('filter-year').value;
             const country = document.getElementById('filter-country').value;
@@ -328,7 +314,7 @@
             const type = document.getElementById('filter-type').value;
 
             filteredData = allData.filter(item => {
-                if (year && item.release_year != year) return false;
+                if (year && String(item.release_year) !== String(year)) return false;
                 if (type && item.type !== type) return false;
                 if (rating && item.rating !== rating) return false;
                 if (country) {
@@ -339,15 +325,11 @@
                 return true;
             });
 
-            // Atualizar cards de resumo
             updateSummaryCards();
-            // Atualizar gráficos
             updateCharts();
-            // Atualizar tabela
             updateTable();
         }
 
-        // ==================== ATUALIZAR CARDS DE RESUMO ====================
         function updateSummaryCards() {
             const total = filteredData.length;
             const movies = filteredData.filter(i => i.type === 'Movie').length;
@@ -367,92 +349,149 @@
                     <h4 class="text-6xl font-black text-red-600">${shows.toLocaleString()}</h4>
                 </div>
             `;
+            gsap.to('.metric-card', { scale: 1, opacity: 1, duration: 0.5, stagger: 0.1 });
         }
 
-        // ==================== ATUALIZAR GRÁFICOS ====================
+        function buildDynamicChartContainers() {
+            const container = document.getElementById('graficos-dinamicos');
+            container.innerHTML = '';
+            if (!visualConfig.graficos || visualConfig.graficos.length === 0) return;
+
+            visualConfig.graficos.forEach((g, index) => {
+                const id = `dynamic-chart-${index}`;
+                container.innerHTML += `
+                    <div class="bg-gray-900/40 p-8 rounded-3xl border border-gray-800 opacity-0 y-50-anim" id="${id}-card">
+                        <h3 class="text-2xl font-black mb-1 tracking-tighter">${g.titulo}</h3>
+                        <p class="text-sm text-gray-500 mb-8 font-medium">${g.sub}</p>
+                        <div id="${id}" class="chart-container"></div>
+                    </div>
+                `;
+            });
+            if (visualConfig.tema === 'light') {
+                document.querySelectorAll('#graficos-dinamicos > div').forEach(card => {
+                    card.classList.replace('bg-gray-900/40', 'bg-white');
+                });
+            }
+        }
+
         function updateCharts() {
-            // Preparar dados para Top Países
-            const countryCount = {};
-            filteredData.forEach(item => {
-                if (item.country) {
-                    const firstCountry = item.country.split(',')[0].trim();
-                    countryCount[firstCountry] = (countryCount[firstCountry] || 0) + 1;
+            if (!visualConfig.graficos) return;
+
+            visualConfig.graficos.forEach((g, index) => {
+                const id = `dynamic-chart-${index}`;
+                let labels = [];
+                let values = [];
+
+                if (g.endpoint === '/top-paises') {
+                    const counts = {};
+                    filteredData.forEach(item => {
+                        if (item.country) {
+                            item.country.split(',').forEach(c => {
+                                const trimC = c.trim();
+                                counts[trimC] = (counts[trimC] || 0) + 1;
+                            });
+                        }
+                    });
+                    const top = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 10);
+                    labels = top.map(x => x[0]);
+                    values = top.map(x => x[1]);
+                } else if (g.endpoint === '/lancamentos-ano') {
+                    const counts = {};
+                    filteredData.forEach(item => {
+                        if (item.release_year) counts[item.release_year] = (counts[item.release_year] || 0) + 1;
+                    });
+                    const sorted = Object.keys(counts).sort();
+                    labels = sorted;
+                    values = sorted.map(k => counts[k]);
+                } else if (g.endpoint === '/por-tipo') {
+                    const counts = { Movie: 0, 'TV Show': 0 };
+                    filteredData.forEach(item => { if(counts[item.type] !== undefined) counts[item.type]++; });
+                    labels = Object.keys(counts);
+                    values = Object.values(counts);
+                } else if (g.endpoint === '/por-classificacao') {
+                    const counts = {};
+                    filteredData.forEach(item => {
+                        if (item.rating) counts[item.rating] = (counts[item.rating] || 0) + 1;
+                    });
+                    const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+                    labels = sorted.map(x => x[0]);
+                    values = sorted.map(x => x[1]);
                 }
+
+                renderChart(id, g.tipo, labels, values, g.cor || visualConfig.cor_primaria, g.endpoint);
             });
-            const topCountries = Object.entries(countryCount)
-                .sort((a,b) => b[1] - a[1])
-                .slice(0, 10);
-            const countryLabels = topCountries.map(p => p[0]);
-            const countryValues = topCountries.map(p => p[1]);
-
-            // Preparar dados para Lançamentos por Ano
-            const yearCount = {};
-            filteredData.forEach(item => {
-                const y = item.release_year;
-                if (y) yearCount[y] = (yearCount[y] || 0) + 1;
-            });
-            const years = Object.keys(yearCount).sort((a,b)=>a-b);
-            const yearValues = years.map(y => yearCount[y]);
-
-            // Preparar dados para Distribuição por Tipo (opcional, mas faremos um gráfico de pizza)
-            const typeCount = {
-                Movie: filteredData.filter(i => i.type === 'Movie').length,
-                'TV Show': filteredData.filter(i => i.type === 'TV Show').length
-            };
-            const typeLabels = Object.keys(typeCount);
-            const typeValues = Object.values(typeCount);
-
-            // Renderizar os gráficos usando ECharts
-            renderChart('chart-top-countries', 'bar', countryLabels, countryValues, visualConfig.cor_primaria || '#E50914', 'Top Países');
-            renderChart('chart-releases-year', 'line', years, yearValues, visualConfig.cor_primaria || '#E50914', 'Lançamentos por Ano');
-            renderChart('chart-type-dist', 'pie', typeLabels, typeValues, visualConfig.cor_primaria || '#E50914', 'Distribuição por Tipo');
         }
 
-        function renderChart(containerId, type, labels, values, color, title) {
+        function renderChart(containerId, type, labels, values, color, endpoint) {
             let container = document.getElementById(containerId);
             if (!container) return;
             let chart = chartInstances[containerId];
             if (!chart) {
                 chart = echarts.init(container, visualConfig.tema === 'light' ? 'light' : 'dark');
                 chartInstances[containerId] = chart;
+                
+                chart.on('click', function(params) {
+                    const clickedName = params.name;
+                    if (endpoint === '/top-paises') {
+                        document.getElementById('filter-country').value = clickedName;
+                    } else if (endpoint === '/lancamentos-ano') {
+                        document.getElementById('filter-year').value = clickedName;
+                    } else if (endpoint === '/por-tipo') {
+                        document.getElementById('filter-type').value = clickedName;
+                    } else if (endpoint === '/por-classificacao') {
+                        document.getElementById('filter-rating').value = clickedName;
+                    }
+                    applyFilters();
+                });
             }
+
             let option = {
-                title: { text: title, left: 'center', textStyle: { color: '#aaa' } },
-                tooltip: { trigger: type === 'pie' ? 'item' : 'axis' },
                 color: [color],
-                backgroundColor: 'transparent'
+                backgroundColor: 'transparent',
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true }
             };
-            if (type === 'pie') {
-                option.series = [{
-                    type: 'pie',
-                    radius: '55%',
-                    data: labels.map((l, i) => ({ name: l, value: values[i] })),
-                    label: { show: true, formatter: '{b}: {d}%' },
-                    itemStyle: { borderRadius: 8 }
-                }];
-            } else if (type === 'bar') {
-                option.xAxis = { type: 'category', data: labels, axisLabel: { rotate: 45, interval: 0 } };
-                option.yAxis = { type: 'value' };
-                option.series = [{ type: 'bar', data: values, itemStyle: { borderRadius: [4,4,0,0] } }];
-            } else if (type === 'line') {
-                option.xAxis = { type: 'category', data: labels };
-                option.yAxis = { type: 'value' };
-                option.series = [{ type: 'line', data: values, smooth: true, areaStyle: { opacity: 0.3 } }];
+
+            let seriesObj = { data: values, itemStyle: { borderRadius: 4 }, animationDuration: 500 };
+
+            if (type === 'pie' || type === 'doughnut') {
+                option.tooltip = { trigger: 'item' };
+                seriesObj.type = 'pie';
+                if (type === 'doughnut') seriesObj.radius = ['40%', '70%'];
+                else seriesObj.radius = '50%';
+                seriesObj.data = labels.map((l, i) => ({ name: l, value: values[i] }));
+                option.series = [seriesObj];
+            } else {
+                option.tooltip = { trigger: 'axis' };
+                if (type === 'bar_horizontal') {
+                    option.xAxis = { type: 'value' };
+                    option.yAxis = { type: 'category', data: labels, axisLabel: { interval: 0 } };
+                    seriesObj.type = 'bar';
+                } else {
+                    option.xAxis = { type: 'category', data: labels, axisLabel: { rotate: 45, interval: 'auto' } };
+                    option.yAxis = { type: 'value' };
+                    if (type === 'bar') seriesObj.type = 'bar';
+                    if (type === 'line' || type === 'area') {
+                        seriesObj.type = 'line';
+                        seriesObj.smooth = true;
+                        if (type === 'area') seriesObj.areaStyle = { opacity: 0.3 };
+                    }
+                }
+                option.series = [seriesObj];
             }
-            chart.setOption(option);
+
+            chart.setOption(option, true);
             chart.resize();
         }
 
-        // ==================== ATUALIZAR TABELA ====================
+        window.addEventListener('resize', () => {
+            for (let id in chartInstances) {
+                chartInstances[id].resize();
+            }
+        });
+
         function updateTable() {
             const lang = i18n[currentLang];
-            // Ordenar por date_added decrescente (mais recentes primeiro)
-            const sorted = [...filteredData].sort((a,b) => {
-                if (!a.date_added) return 1;
-                if (!b.date_added) return -1;
-                return new Date(b.date_added) - new Date(a.date_added);
-            });
-            const limited = sorted.slice(0, 50);
+            const limited = filteredData.slice(0, 50);
             const tbody = document.getElementById('titulos-body');
             if (limited.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8">${lang.all === 'Todos' ? 'Nenhum título encontrado' : 'No titles found'}</td></tr>`;
@@ -474,7 +513,6 @@
             `).join('');
         }
 
-        // ==================== ATUALIZAR TEXTOS DE IDIOMA ====================
         function updateLanguageTexts() {
             const lang = i18n[currentLang];
             document.getElementById('hero-title').innerText = lang.hero_title;
@@ -489,66 +527,36 @@
             document.getElementById('filter-country-label').innerText = lang.filter_country;
             document.getElementById('filter-rating-label').innerText = lang.filter_rating;
             document.getElementById('filter-type-label').innerText = lang.filter_type;
-            // Atualizar opções "Todos" dos selects (manter valores atuais)
+            
             const selects = ['filter-year', 'filter-country', 'filter-rating'];
             selects.forEach(id => {
                 const select = document.getElementById(id);
-                const options = select.options;
-                if (options.length > 0 && options[0].value === '') {
-                    options[0].text = lang.all;
+                if (select.options.length > 0 && select.options[0].value === '') {
+                    select.options[0].text = lang.all;
                 }
             });
-            // Atualizar tipo (já tem opções fixas, mas traduzir)
             const typeSelect = document.getElementById('filter-type');
             if (typeSelect.options[0].value === '') typeSelect.options[0].text = lang.all;
             if (typeSelect.options[1]) typeSelect.options[1].text = lang.movies_label === 'Filmes' ? 'Filmes' : 'Movies';
             if (typeSelect.options[2]) typeSelect.options[2].text = lang.shows_label === 'Séries de TV' ? 'Séries' : 'TV Shows';
         }
 
-        // ==================== INICIALIZAR PÁGINA ====================
         async function init() {
             gsap.registerPlugin(ScrollTrigger);
             await loadVisualConfig();
+            buildDynamicChartContainers();
             await loadAllTitles();
             updateLanguageTexts();
-            // Criar os contêineres dos gráficos
-            const chartsContainer = document.getElementById('graficos-dinamicos');
-            chartsContainer.innerHTML = `
-                <div class="bg-gray-900/40 p-8 rounded-3xl border border-gray-800 opacity-0 y-50-anim" id="chart-top-countries-card">
-                    <h3 class="text-2xl font-black mb-1 tracking-tighter">Top 10 Países</h3>
-                    <p class="text-sm text-gray-500 mb-8 font-medium">Baseado nos filtros aplicados</p>
-                    <div id="chart-top-countries" class="chart-container"></div>
-                </div>
-                <div class="bg-gray-900/40 p-8 rounded-3xl border border-gray-800 opacity-0 y-50-anim" id="chart-releases-year-card">
-                    <h3 class="text-2xl font-black mb-1 tracking-tighter">Lançamentos por Ano</h3>
-                    <p class="text-sm text-gray-500 mb-8 font-medium">Baseado nos filtros aplicados</p>
-                    <div id="chart-releases-year" class="chart-container"></div>
-                </div>
-                <div class="bg-gray-900/40 p-8 rounded-3xl border border-gray-800 opacity-0 y-50-anim lg:col-span-2" id="chart-type-dist-card">
-                    <h3 class="text-2xl font-black mb-1 tracking-tighter">Distribuição por Tipo</h3>
-                    <p class="text-sm text-gray-500 mb-8 font-medium">Filmes vs Séries</p>
-                    <div id="chart-type-dist" class="chart-container"></div>
-                </div>
-            `;
-            // Aplicar tema aos novos cards
-            if (visualConfig.tema === 'light') {
-                document.querySelectorAll('#graficos-dinamicos > div').forEach(card => {
-                    card.classList.replace('bg-gray-900/40', 'bg-white');
-                });
-            }
-            // Atualizar gráficos (inicial)
-            updateCharts();
-            // Adicionar eventos aos filtros
+            
             document.getElementById('filter-year').addEventListener('change', applyFilters);
             document.getElementById('filter-country').addEventListener('change', applyFilters);
             document.getElementById('filter-rating').addEventListener('change', applyFilters);
             document.getElementById('filter-type').addEventListener('change', applyFilters);
-            // Animações GSAP
+            
             const tl = gsap.timeline();
             tl.to('#curtain', { yPercent: -100, duration: 1.2, ease: "expo.inOut", delay: 0.5 })
               .to('#netflix-logo', { scale: 1, rotate: 0, opacity: 1, duration: 0.8, ease: "back.out(1.7)" }, "-=0.4")
               .to('.y-20-anim', { y: 0, opacity: 1, duration: 1, stagger: 0.2, ease: "power4.out" }, "-=0.5")
-              .to('.metric-card', { scale: 1, opacity: 1, duration: 0.8, stagger: 0.1, ease: "back.out(1.2)" }, "-=0.8")
               .add(() => {
                   document.querySelectorAll('.y-50-anim').forEach(el => {
                       gsap.to(el, {
@@ -559,46 +567,13 @@
               });
         }
 
-        // ==================== TROCA DE IDIOMA ====================
         document.getElementById('lang-switch').addEventListener('click', () => {
             currentLang = currentLang === 'pt' ? 'en' : 'pt';
             updateLanguageTexts();
-            updateSummaryCards();   // recria os cards com os textos atualizados
-            updateTable();          // recria a tabela com os textos atualizados
-            // Não recria os gráficos, apenas atualiza os títulos dentro deles (se quiser)
-            // Mas os títulos dos gráficos já estão em inglês/português conforme o idioma atual
-            // Como os títulos estão hardcoded, teríamos que atualizar também
-            // Vamos atualizar os títulos dos gráficos dinamicamente
-            const lang = i18n[currentLang];
-            const chartTitles = {
-                'chart-top-countries-card': `Top 10 ${lang.filter_country === 'País' ? 'Países' : 'Countries'}`,
-                'chart-releases-year-card': `${lang.filter_year === 'Ano' ? 'Lançamentos por Ano' : 'Releases per Year'}`,
-                'chart-type-dist-card': `${lang.movies_label === 'Filmes' ? 'Distribuição por Tipo' : 'Distribution by Type'}`
-            };
-            for (const [id, title] of Object.entries(chartTitles)) {
-                const card = document.getElementById(id);
-                if (card) {
-                    const h3 = card.querySelector('h3');
-                    if (h3) h3.innerText = title;
-                }
-            }
-            // Se os gráficos existirem, atualizar o título do gráfico via setOption
-            for (let [key, chart] of Object.entries(chartInstances)) {
-                let option = chart.getOption();
-                if (option.title && option.title.length) {
-                    let newTitle = '';
-                    if (key === 'chart-top-countries') newTitle = `Top 10 ${lang.filter_country === 'País' ? 'Países' : 'Countries'}`;
-                    else if (key === 'chart-releases-year') newTitle = `${lang.filter_year === 'Ano' ? 'Lançamentos por Ano' : 'Releases per Year'}`;
-                    else if (key === 'chart-type-dist') newTitle = `${lang.movies_label === 'Filmes' ? 'Distribuição por Tipo' : 'Distribution by Type'}`;
-                    if (newTitle) {
-                        option.title[0].text = newTitle;
-                        chart.setOption(option);
-                    }
-                }
-            }
+            updateSummaryCards();
+            updateTable();
         });
 
-        // Iniciar
         init();
     </script>
 </body>
