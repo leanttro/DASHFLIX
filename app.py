@@ -1,78 +1,144 @@
-from flask import Flask, jsonify, request
-from flask_cors import CORS
-import requests
-import os
-from dotenv import load_dotenv
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DASHFLIX Editor - Painel Administrativo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style> [x-cloak] { display: none !important; } </style>
+</head>
+<body class="bg-gray-100 text-gray-900 antialiased" x-data="editor()" x-init="init()" x-cloak>
+    <div class="min-h-screen flex">
+        
+        <nav class="w-64 bg-gray-900 p-6 flex flex-col text-gray-300 border-r border-gray-800">
+            <h1 class="text-xl font-extrabold text-white mb-10 tracking-tighter">Dashflix <span class="text-red-500">Editor</span></h1>
+            <a href="index.html" class="bg-gray-800 text-white p-3 rounded-lg text-center font-bold hover:bg-gray-700 transition">Ver Dashboard</a>
+            <div class="mt-auto text-xs text-gray-600">Powered by Directus & Flask</div>
+        </nav>
 
-load_dotenv()
+        <main class="flex-1 p-10 h-screen overflow-y-auto">
+            <header class="flex justify-between items-center mb-10 pb-4 border-b border-gray-200">
+                <h2 class="text-3xl font-bold tracking-tight text-gray-800">Configurações Wix Mode</h2>
+                <div class="flex gap-4">
+                    <button @click="triggerETL()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-md transition" :disabled="loadingETL">
+                        <span x-show="!loadingETL">Sincronizar Kaggle</span>
+                        <span x-show="loadingETL">Processando...</span>
+                    </button>
+                    <button @click="save()" class="bg-red-600 text-white px-8 py-2 rounded-lg font-bold hover:bg-red-700 shadow-lg transition">Salvar Tudo</button>
+                </div>
+            </header>
 
-app = Flask(__name__)
-CORS(app)
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="text-xl font-bold mb-6 border-b pb-2 text-red-600">Visual Geral</h3>
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold mb-2 text-gray-600">Tema</label>
+                        <select x-model="config.tema" class="w-full p-3 border rounded-lg bg-gray-50"><option value="dark">Escuro (Netflix Style)</option><option value="light">Claro (Corporate)</option></select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold mb-2 text-gray-600">Fonte</label>
+                        <select x-model="config.fonte" class="w-full p-3 border rounded-lg bg-gray-50"><option value="Poppins">Poppins</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option></select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold mb-2 text-gray-600">Cor Primária</label>
+                            <input type="color" x-model="config.cor_primaria" class="w-full h-12 cursor-pointer rounded border-0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2 text-gray-600">Fundo (Dark)</label>
+                            <input type="color" x-model="config.cor_fundo" class="w-full h-12 cursor-pointer rounded border-0">
+                        </div>
+                    </div>
+                </div>
 
-DIRECTUS_URL = os.getenv("DIRECTUS_URL", "http://localhost:8055").rstrip('/')
-DIRECTUS_TOKEN = os.getenv("DIRECTUS_TOKEN", "")
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="text-xl font-bold mb-6 border-b pb-2 text-red-600">Mídia de Destaque</h3>
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold mb-2 text-gray-600">URL da Mídia (Imagem ou Vídeo MP4)</label>
+                        <input type="text" x-model="config.midia_url" class="w-full p-3 border rounded-lg font-mono text-sm bg-gray-50" placeholder="https://...">
+                    </div>
+                    <label class="block text-sm font-bold mb-2 text-gray-600">Tipo de Mídia</label>
+                    <select x-model="config.midia_tipo" class="w-full p-3 border rounded-lg bg-gray-50"><option value="image">Imagem</option><option value="video">Vídeo</option></select>
+                </div>
+            </div>
 
-def get_headers():
-    return {
-        "Authorization": f"Bearer {DIRECTUS_TOKEN}",
-        "Content-Type": "application/json"
-    }
+            <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-8">
+                <div class="flex justify-between items-center mb-6 border-b pb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Construtor de Gráficos Dinâmicos (JSON)</h3>
+                    <button @click="addChart()" class="bg-black text-white px-5 py-2 rounded-lg font-bold hover:bg-gray-800 transition shadow">+ Adicionar Gráfico</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <template x-for="(g, i) in config.graficos" :key="i">
+                        <div class="border border-gray-200 p-6 rounded-xl bg-gray-50 relative shadow-inner">
+                            <button @click="config.graficos.splice(i, 1)" class="absolute top-4 right-4 text-red-500 font-bold bg-white px-2 py-1 rounded shadow hover:bg-red-50 transition">Remover</button>
+                            <input type="text" x-model="g.titulo" class="w-full p-2 border rounded mb-2 font-bold text-sm" placeholder="Título">
+                            <input type="text" x-model="g.sub" class="w-full p-2 border rounded mb-4 text-sm" placeholder="Subtítulo">
+                            <select x-model="g.endpoint" class="w-full p-2 border rounded mb-4 text-sm bg-white"><option value="/top-paises">Top 10 Países</option><option value="/lancamentos-ano">Evolução por Ano</option></select>
+                            <div class="flex gap-2">
+                                <select x-model="g.tipo" class="flex-1 p-2 border rounded text-sm bg-white">
+                                    <option value="bar">Colunas</option><option value="bar_horizontal">Barras</option><option value="line">Linha</option><option value="area">Área</option><option value="pie">Pizza</option><option value="doughnut">Rosca</option>
+                                </select>
+                                <input type="color" x-model="g.cor" class="w-14 h-10 cursor-pointer rounded border-0">
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </main>
+    </div>
 
-@app.route('/api/resumo', methods=['GET'])
-def get_resumo():
-    url = f"{DIRECTUS_URL}/items/netflix_titles?aggregate[count]=*&groupBy[]=type"
-    try:
-        r = requests.get(url, headers=get_headers())
-        if r.status_code == 200:
-            return jsonify(r.json().get('data', []))
-        return jsonify({"erro": "Falha de comunicacao com Directus"}), 500
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
+    <script>
+        // LEMBRE-SE DE TROCAR O IP_CONTABO PELO SEU IP REAL!
+        const IP_CONTABO = 'SEU_IP_DA_CONTABO'; 
+        const DIRECTUS_URL = `http://${IP_CONTABO}:8055`; 
+        const FLASK_URL_BASE = `http://${IP_CONTABO}:5001/api`;
+        const CONFIG_API = `${DIRECTUS_URL}/items/configuracoes_dashflix/1`;
 
-@app.route('/api/top-paises', methods=['GET'])
-def get_top_paises():
-    url = f"{DIRECTUS_URL}/items/netflix_titles?limit=10000&fields=country"
-    try:
-        r = requests.get(url, headers=get_headers())
-        if r.status_code == 200:
-            data = r.json().get('data', [])
-            contagem = {}
-            for item in data:
-                pais = item.get('country')
-                if pais:
-                    primeiro_pais = pais.split(',')[0].strip()
-                    contagem[primeiro_pais] = contagem.get(primeiro_pais, 0) + 1
-            
-            ordenado = sorted(contagem.items(), key=lambda x: x[1], reverse=True)[:10]
-            resultado = [{"pais": k, "total": v} for k, v in ordenado]
-            return jsonify(resultado)
-        return jsonify({"erro": "Falha na API"}), 500
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
-
-@app.route('/api/lancamentos-ano', methods=['GET'])
-def get_lancamentos_ano():
-    url = f"{DIRECTUS_URL}/items/netflix_titles?aggregate[count]=*&groupBy[]=release_year&sort=-release_year&limit=20"
-    try:
-        r = requests.get(url, headers=get_headers())
-        if r.status_code == 200:
-            return jsonify(r.json().get('data', []))
-        return jsonify({"erro": "Falha na API"}), 500
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
-
-@app.route('/api/titulos', methods=['GET'])
-def get_titulos():
-    limit = request.args.get('limit', 100)
-    page = request.args.get('page', 1)
-    url = f"{DIRECTUS_URL}/items/netflix_titles?limit={limit}&page={page}&sort=-date_added"
-    try:
-        r = requests.get(url, headers=get_headers())
-        if r.status_code == 200:
-            return jsonify(r.json().get('data', []))
-        return jsonify({"erro": "Falha na API"}), 500
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001)
+        function editor() {
+            return {
+                saving: false,
+                loadingETL: false,
+                config: { tema: 'dark', cor_primaria: '#E50914', cor_fundo: '#000000', fonte: 'Poppins', midia_url: '', midia_tipo: 'image', graficos: [] },
+                rawData: [],
+                async init() {
+                    try {
+                        const r = await fetch(CONFIG_API);
+                        const { data } = await r.json();
+                        if (data) {
+                            this.config = Object.assign(this.config, data);
+                            if (!Array.isArray(this.config.graficos)) this.config.graficos = [];
+                        }
+                    } catch (e) { console.error("Erro Directus:", e); }
+                    this.loadRaw();
+                },
+                addChart() { this.config.graficos.push({ titulo: 'Novo Gráfico', sub: 'Descrição', endpoint: '/top-paises', tipo: 'bar', cor: this.config.cor_primaria }); },
+                async loadRaw() {
+                    try {
+                        const r = await fetch(`${FLASK_URL_BASE}/titulos?limit=20`);
+                        this.rawData = await r.json();
+                    } catch (e) { console.error("Erro Flask:", e); }
+                },
+                async triggerETL() {
+                    this.loadingETL = true;
+                    try {
+                        const r = await fetch(`${FLASK_URL_BASE}/run-etl`, { method: 'POST' });
+                        const res = await r.json();
+                        alert(res.mensagem);
+                    } catch (e) { alert('Erro ao iniciar sincronização.'); }
+                    this.loadingETL = false;
+                },
+                async save() {
+                    this.saving = true;
+                    try {
+                        const response = await fetch(CONFIG_API, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.config) });
+                        if(response.ok) alert('Configurações Salvas!');
+                        else alert('Erro ao salvar no Directus.');
+                    } catch (e) { alert('Erro de rede.'); }
+                    this.saving = false;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
