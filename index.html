@@ -59,7 +59,6 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
 
-        /* Scrollbar customizada para o clima Netflix */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #141414; }
         ::-webkit-scrollbar-thumb { background: #E50914; border-radius: 10px; }
@@ -93,7 +92,7 @@
             </p>
             
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8" id="summary-container">
-                </div>
+            </div>
         </section>
 
         <section id="midia-section" class="mb-20 opacity-0 y-20-anim hidden">
@@ -103,7 +102,7 @@
         </section>
 
         <section id="graficos-dinamicos" class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
-            </section>
+        </section>
 
         <section class="mt-20 bg-gray-900/30 p-8 rounded-3xl border border-gray-800 opacity-0 y-50-anim">
             <div class="flex justify-between items-center mb-8">
@@ -122,7 +121,7 @@
                         </tr>
                     </thead>
                     <tbody id="titulos-body" class="divide-y divide-gray-800/50">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
         </section>
@@ -134,14 +133,12 @@
     </footer>
 
     <script>
-        // CONFIGURAÇÕES DE CONEXÃO ATUALIZADAS COM SEUS DOMÍNIOS DOKPLOY
         const FLASK_API = "https://api-dashflix.leanttro.com/api";
         const DIRECTUS_API = "https://api.leanttro.com";
 
         let visualConfig = {};
         let currentLang = 'pt';
 
-        // SISTEMA DE TRADUÇÃO
         const i18n = {
             pt: {
                 hero_title: "Métricas Premium",
@@ -167,7 +164,6 @@
             }
         };
 
-        // 1. CARREGAR CONFIGURAÇÕES VISUAIS DO DIRECTUS
         async function loadVisualConfig() {
             try {
                 const response = await fetch(`${DIRECTUS_API}/items/configuracoes_dashflix/1`);
@@ -175,11 +171,8 @@
                 
                 if (data) {
                     visualConfig = data;
-                    
-                    // Aplicar Fonte
                     document.body.style.fontFamily = `'${data.fonte || 'Poppins'}', sans-serif`;
                     
-                    // Aplicar Tema
                     if (data.tema === 'light') {
                         document.body.classList.replace('bg-black', 'bg-gray-50');
                         document.body.classList.replace('text-white', 'text-gray-900');
@@ -190,12 +183,10 @@
                         document.body.style.backgroundColor = data.cor_fundo;
                     }
 
-                    // Cor Primária
                     const primary = data.cor_primaria || '#E50914';
                     document.documentElement.style.setProperty('--primary-color', primary);
                     document.getElementById('lang-switch').style.backgroundColor = primary;
 
-                    // Mídia (Vídeo ou Imagem)
                     if (data.midia_url) {
                         const section = document.getElementById('midia-section');
                         const content = document.getElementById('midia-content');
@@ -213,10 +204,8 @@
             }
         }
 
-        // 2. CARREGAR DADOS DO FLASK (KAGGLE)
         async function loadDashboardData() {
             try {
-                // KPIs
                 const resResumo = await fetch(`${FLASK_API}/resumo`);
                 const dataResumo = await resResumo.json();
                 
@@ -241,7 +230,6 @@
                     </div>
                 `;
 
-                // Tabela
                 const resTitulos = await fetch(`${FLASK_API}/titulos?limit=8`);
                 const dataTitulos = await resTitulos.json();
                 
@@ -263,7 +251,6 @@
             }
         }
 
-        // 3. GERAR OPÇÕES DO ECHARTS
         function getChartOption(tipo, cor, labels, values) {
             const isPie = tipo === 'pie' || tipo === 'doughnut';
             
@@ -298,7 +285,6 @@
             return baseOpt;
         }
 
-        // 4. INICIALIZAR GRÁFICOS DINÂMICOS (JSON ARRAY)
         async function initCharts() {
             const container = document.getElementById('graficos-dinamicos');
             container.innerHTML = '';
@@ -309,7 +295,6 @@
             for (let i = 0; i < configGraficos.length; i++) {
                 const g = configGraficos[i];
                 
-                // Criar elemento no DOM
                 const card = document.createElement('div');
                 card.className = 'bg-gray-900/40 p-8 rounded-3xl border border-gray-800 opacity-0 y-50-anim';
                 if (visualConfig.tema === 'light') card.classList.replace('bg-gray-900/40', 'bg-white');
@@ -349,7 +334,6 @@
             window.addEventListener('resize', () => chartInstances.forEach(c => c.resize()));
         }
 
-        // 5. ANIMAÇÕES GSAP
         function runAnimations() {
             const tl = gsap.timeline();
             
@@ -359,7 +343,6 @@
               .to('.metric-card', { scale: 1, opacity: 1, duration: 0.8, stagger: 0.1, ease: "back.out(1.2)" }, "-=0.8")
               .add(() => {
                   initCharts();
-                  // ScrollTriggers para os elementos que surgem depois
                   document.querySelectorAll('.y-50-anim').forEach(el => {
                       gsap.to(el, {
                           scrollTrigger: { trigger: el, start: "top 85%" },
@@ -369,7 +352,6 @@
               });
         }
 
-        // ALTERNAR IDIOMA
         document.getElementById('lang-switch').addEventListener('click', () => {
             currentLang = currentLang === 'pt' ? 'en' : 'pt';
             const lang = i18n[currentLang];
@@ -381,11 +363,10 @@
             document.getElementById('th-title').innerText = lang.th_title;
             document.getElementById('th-year').innerText = lang.th_year;
             
-            loadDashboardData(); // Recarrega KPIs com novos nomes
-            initCharts(); // Recarrega legendas dos gráficos
+            loadDashboardData();
+            initCharts();
         });
 
-        // INICIALIZAÇÃO TOTAL
         window.addEventListener('load', async () => {
             gsap.registerPlugin(ScrollTrigger);
             await loadVisualConfig();
