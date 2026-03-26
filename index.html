@@ -269,6 +269,7 @@
             try {
                 const response = await fetch(`${FLASK_API}/titulos?limit=10000`);
                 allData = await response.json();
+                if (!Array.isArray(allData)) allData = [];
                 populateFilters();
                 applyFilters();
                 return true;
@@ -279,6 +280,7 @@
         }
 
         function populateFilters() {
+            if (!Array.isArray(allData)) return;
             const years = [...new Set(allData.map(item => item.release_year).filter(y => y))].sort((a,b)=>b-a);
             const countries = [...new Set(allData.flatMap(item => {
                 if (!item.country) return [];
@@ -308,6 +310,7 @@
         }
 
         function applyFilters() {
+            if (!Array.isArray(allData)) return;
             const year = document.getElementById('filter-year').value;
             const country = document.getElementById('filter-country').value;
             const rating = document.getElementById('filter-rating').value;
@@ -355,14 +358,17 @@
         function buildDynamicChartContainers() {
             const container = document.getElementById('graficos-dinamicos');
             container.innerHTML = '';
-            if (!visualConfig.graficos || visualConfig.graficos.length === 0) return;
+            if (!Array.isArray(visualConfig.graficos) || visualConfig.graficos.length === 0) return;
 
             visualConfig.graficos.forEach((g, index) => {
+                if (!g) return;
                 const id = `dynamic-chart-${index}`;
+                const titulo = g.titulo || 'Gráfico';
+                const sub = g.sub || '';
                 container.innerHTML += `
                     <div class="bg-gray-900/40 p-8 rounded-3xl border border-gray-800 opacity-0 y-50-anim" id="${id}-card">
-                        <h3 class="text-2xl font-black mb-1 tracking-tighter">${g.titulo}</h3>
-                        <p class="text-sm text-gray-500 mb-8 font-medium">${g.sub}</p>
+                        <h3 class="text-2xl font-black mb-1 tracking-tighter">${titulo}</h3>
+                        <p class="text-sm text-gray-500 mb-8 font-medium">${sub}</p>
                         <div id="${id}" class="chart-container"></div>
                     </div>
                 `;
@@ -375,14 +381,17 @@
         }
 
         function updateCharts() {
-            if (!visualConfig.graficos) return;
+            if (!Array.isArray(visualConfig.graficos)) return;
 
             visualConfig.graficos.forEach((g, index) => {
+                if (!g) return;
                 const id = `dynamic-chart-${index}`;
+                const endpoint = g.endpoint || '/top-paises';
+                const tipo = g.tipo || 'bar';
                 let labels = [];
                 let values = [];
 
-                if (g.endpoint === '/top-paises') {
+                if (endpoint === '/top-paises') {
                     const counts = {};
                     filteredData.forEach(item => {
                         if (item.country) {
@@ -395,7 +404,7 @@
                     const top = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 10);
                     labels = top.map(x => x[0]);
                     values = top.map(x => x[1]);
-                } else if (g.endpoint === '/lancamentos-ano') {
+                } else if (endpoint === '/lancamentos-ano') {
                     const counts = {};
                     filteredData.forEach(item => {
                         if (item.release_year) counts[item.release_year] = (counts[item.release_year] || 0) + 1;
@@ -403,12 +412,12 @@
                     const sorted = Object.keys(counts).sort();
                     labels = sorted;
                     values = sorted.map(k => counts[k]);
-                } else if (g.endpoint === '/por-tipo') {
+                } else if (endpoint === '/por-tipo') {
                     const counts = { Movie: 0, 'TV Show': 0 };
                     filteredData.forEach(item => { if(counts[item.type] !== undefined) counts[item.type]++; });
                     labels = Object.keys(counts);
                     values = Object.values(counts);
-                } else if (g.endpoint === '/por-classificacao') {
+                } else if (endpoint === '/por-classificacao') {
                     const counts = {};
                     filteredData.forEach(item => {
                         if (item.rating) counts[item.rating] = (counts[item.rating] || 0) + 1;
@@ -418,7 +427,7 @@
                     values = sorted.map(x => x[1]);
                 }
 
-                renderChart(id, g.tipo, labels, values, g.cor || visualConfig.cor_primaria, g.endpoint);
+                renderChart(id, tipo, labels, values, g.cor || visualConfig.cor_primaria, endpoint);
             });
         }
 
@@ -445,36 +454,34 @@
                 });
             }
 
+            const safeColor = color || '#E50914';
+            const safeType = type || 'bar';
+
             let option = {
-                color: [color],
+                color: [safeColor],
                 backgroundColor: 'transparent',
                 grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true }
             };
 
-            let seriesObj = { data: values, itemStyle: { borderRadius: 4 }, animationDuration: 500 };
+            let seriesObj = { data: values, type: safeType === 'bar_horizontal' ? 'bar' : (safeType === 'area' ? 'line' : safeType), itemStyle: { borderRadius: 4 }, animationDuration: 500 };
 
-            if (type === 'pie' || type === 'doughnut') {
+            if (safeType === 'pie' || safeType === 'doughnut') {
                 option.tooltip = { trigger: 'item' };
                 seriesObj.type = 'pie';
-                if (type === 'doughnut') seriesObj.radius = ['40%', '70%'];
+                if (safeType === 'doughnut') seriesObj.radius = ['40%', '70%'];
                 else seriesObj.radius = '50%';
                 seriesObj.data = labels.map((l, i) => ({ name: l, value: values[i] }));
                 option.series = [seriesObj];
             } else {
                 option.tooltip = { trigger: 'axis' };
-                if (type === 'bar_horizontal') {
+                if (safeType === 'bar_horizontal') {
                     option.xAxis = { type: 'value' };
                     option.yAxis = { type: 'category', data: labels, axisLabel: { interval: 0 } };
-                    seriesObj.type = 'bar';
                 } else {
                     option.xAxis = { type: 'category', data: labels, axisLabel: { rotate: 45, interval: 'auto' } };
                     option.yAxis = { type: 'value' };
-                    if (type === 'bar') seriesObj.type = 'bar';
-                    if (type === 'line' || type === 'area') {
-                        seriesObj.type = 'line';
-                        seriesObj.smooth = true;
-                        if (type === 'area') seriesObj.areaStyle = { opacity: 0.3 };
-                    }
+                    if (safeType === 'area') seriesObj.areaStyle = { opacity: 0.3 };
+                    if (safeType === 'line' || safeType === 'area') seriesObj.smooth = true;
                 }
                 option.series = [seriesObj];
             }
