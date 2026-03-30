@@ -24,7 +24,6 @@
             height: 400px; 
             opacity: 1; 
             transform: none; 
-            position: relative;
         }
         .metric-card { 
             opacity: 0; 
@@ -83,9 +82,6 @@
             background-color: #f3f4f6;
             color: #1f2937;
             border-color: #d1d5db;
-        }
-        .scene-container canvas {
-            outline: none;
         }
     </style>
 </head>
@@ -161,7 +157,7 @@
         </div>
 
         <section id="graficos-dinamicos" class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
-        </section>
+            </section>
 
         <section class="mt-20 bg-gray-900/30 p-8 rounded-3xl border border-gray-800 opacity-0 y-50-anim">
             <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
@@ -194,14 +190,18 @@
     </footer>
 
     <script>
+        // ==================== CONFIGURAÇÕES GLOBAIS ====================
         const FLASK_API = "https://api-dashflix.leanttro.com/api";
         const DIRECTUS_API = "https://api.leanttro.com";
 
         let visualConfig = {};
         let currentLang = 'pt';
-        let chartInstances = {};
-        let globeInstance = null;
+        let allData = [];           // Todos os títulos carregados
+        let filteredData = [];      // Dados após aplicação dos filtros
+        let chartInstances = {};    // Guarda as instancias do ECharts para atualizar e redimensionar
+        let globeInstance = null;   // Guarda a instancia do Globo 3D
 
+        // ==================== TRADUÇÕES ====================
         const i18n = {
             pt: {
                 hero_title: "Métricas Premium",
@@ -241,12 +241,14 @@
             }
         };
 
+        // ==================== CARREGAR CONFIGURAÇÃO VISUAL (DIRECTUS) ====================
         async function loadVisualConfig() {
             try {
                 const response = await fetch(`${DIRECTUS_API}/items/configuracoes_dashflix/1`);
                 const { data } = await response.json();
                 if (data) {
                     visualConfig = data;
+                    
                     document.body.style.fontFamily = `'${data.fonte || 'Poppins'}', sans-serif`;
                     
                     if (data.tema === 'light') {
@@ -280,47 +282,71 @@
             }
         }
 
-        async function populateFilters() {
+        // ==================== CARREGAR TODOS OS TÍTULOS ====================
+        async function loadAllTitles() {
             try {
-                const res = await fetch(`${FLASK_API}/filter-options`);
-                const data = await res.json();
+                const response = await fetch(`${FLASK_API}/titulos?limit=10000`);
+                const data = await response.json();
+                allData = data;
+                console.log(`Carregados ${allData.length} títulos.`);
                 
-                const yearSelect = document.getElementById('filter-year');
-                const countrySelect = document.getElementById('filter-country');
-                const ratingSelect = document.getElementById('filter-rating');
+                // Preencher os filtros com valores únicos do banco
+                populateFilters();
                 
-                const currentYearVal = yearSelect.value;
-                const currentCountryVal = countrySelect.value;
-                const currentRatingVal = ratingSelect.value;
+                // Aplicar filtros iniciais (renderizando todos os graficos e cards)
+                applyFilters();
                 
-                const txtTodos = currentLang === 'pt' ? 'Todos' : 'All';
-                
-                yearSelect.innerHTML = `<option value="">${txtTodos}</option>`;
-                data.anos.forEach(y => yearSelect.innerHTML += `<option value="${y}">${y}</option>`);
-                yearSelect.value = currentYearVal;
-                
-                countrySelect.innerHTML = `<option value="">${txtTodos}</option>`;
-                data.paises.forEach(c => countrySelect.innerHTML += `<option value="${c}">${c}</option>`);
-                countrySelect.value = currentCountryVal;
-                
-                ratingSelect.innerHTML = `<option value="">${txtTodos}</option>`;
-                data.ratings.forEach(r => ratingSelect.innerHTML += `<option value="${r}">${r}</option>`);
-                ratingSelect.value = currentRatingVal;
-            } catch(e) { console.error(e); }
+                return true;
+            } catch (err) {
+                console.error("Erro ao carregar títulos:", err);
+                return false;
+            }
         }
 
-        function getQueryParams() {
-            const params = new URLSearchParams();
+        // ==================== PREENCHER OS DROPDOWNS DE FILTRO ====================
+        function populateFilters() {
+            const years = [...new Set(allData.map(item => item.release_year).filter(y => y))].sort((a,b)=>b-a);
+            
+            const countries = [...new Set(allData.flatMap(item => {
+                if (!item.country) return [];
+                return item.country.split(',').map(c => c.trim());
+            }))].sort();
+            
+            const ratings = [...new Set(allData.map(item => item.rating).filter(r => r))].sort();
+
+            const yearSelect = document.getElementById('filter-year');
+            const currentYearVal = yearSelect.value;
+            yearSelect.innerHTML = '<option value="">' + (currentLang === 'pt' ? 'Todos' : 'All') + '</option>';
+            years.forEach(y => {
+                yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+            });
+            yearSelect.value = currentYearVal;
+
+            const countrySelect = document.getElementById('filter-country');
+            const currentCountryVal = countrySelect.value;
+            countrySelect.innerHTML = '<option value="">' + (currentLang === 'pt' ? 'Todos' : 'All') + '</option>';
+            countries.forEach(c => {
+                if (c) countrySelect.innerHTML += `<option value="${c}">${c}</option>`;
+            });
+            countrySelect.value = currentCountryVal;
+
+            const ratingSelect = document.getElementById('filter-rating');
+            const currentRatingVal = ratingSelect.value;
+            ratingSelect.innerHTML = '<option value="">' + (currentLang === 'pt' ? 'Todos' : 'All') + '</option>';
+            ratings.forEach(r => {
+                if (r) ratingSelect.innerHTML += `<option value="${r}">${r}</option>`;
+            });
+            ratingSelect.value = currentRatingVal;
+        }
+
+        // ==================== APLICAR FILTROS CRUZADOS E LOCAIS ====================
+        function applyFilters() {
             const year = document.getElementById('filter-year').value;
             const country = document.getElementById('filter-country').value;
             const rating = document.getElementById('filter-rating').value;
             const type = document.getElementById('filter-type').value;
 
-            if (year) params.append('ano', year);
-            if (country) params.append('pais', country);
-            if (rating) params.append('rating', rating);
-            if (type) params.append('tipo', type);
-            
+            // Exibir ou ocultar botao de limpar filtros
             const btnLimpar = document.getElementById('btn-limpar-filtros');
             if (year || country || rating || type) {
                 btnLimpar.classList.remove('hidden');
@@ -329,17 +355,23 @@
                 btnLimpar.classList.remove('block');
                 btnLimpar.classList.add('hidden');
             }
-            return params.toString();
-        }
 
-        async function applyFilters() {
-            const query = getQueryParams();
-            const queryStr = query ? `?${query}` : '';
-            
-            fetch(`${FLASK_API}/resumo${queryStr}`).then(r => r.json()).then(updateSummaryCards);
-            fetch(`${FLASK_API}/titulos${query ? '?' + query + '&limit=50' : '?limit=50'}`).then(r => r.json()).then(updateTable);
-            
-            updateCharts(queryStr);
+            filteredData = allData.filter(item => {
+                if (year && item.release_year != year) return false;
+                if (type && item.type !== type) return false;
+                if (rating && item.rating !== rating) return false;
+                if (country) {
+                    if (!item.country) return false;
+                    const itemCountries = item.country.split(',').map(c => c.trim());
+                    if (!itemCountries.includes(country)) return false;
+                }
+                return true;
+            });
+
+            // Atualizar os três blocos principais da pagina
+            updateSummaryCards();
+            updateCharts();
+            updateTable();
         }
 
         function limparFiltrosCruzados() {
@@ -355,15 +387,17 @@
             if (select) {
                 select.value = valor;
                 applyFilters();
+                // Rolar a tela suavemente para a area de filtros para que o usuario veja a mudanca
                 select.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }
 
-        function updateSummaryCards(data) {
-            if(!data || data.erro) return;
-            const total = data.Total || 0;
-            const movies = data.Movie || 0;
-            const shows = data['TV Show'] || 0;
+        // ==================== ATUALIZAR CARDS DE RESUMO ====================
+        function updateSummaryCards() {
+            const total = filteredData.length;
+            const movies = filteredData.filter(i => i.type === 'Movie').length;
+            const shows = filteredData.filter(i => i.type === 'TV Show').length;
+            
             const lang = i18n[currentLang];
             
             document.getElementById('summary-container').innerHTML = `
@@ -382,22 +416,29 @@
             `;
         }
 
-        async function updateCharts(queryStr) {
+        // ==================== ATUALIZAR GRÁFICOS (BASEADO NO PAINEL) ====================
+        function updateCharts() {
             const chartsContainer = document.getElementById('graficos-dinamicos');
+            
+            // Verifica se existem graficos cadastrados no painel
             let graficosConfigurados = visualConfig.graficos;
             
             if (!Array.isArray(graficosConfigurados) || graficosConfigurados.length === 0) {
+                // Configuração padrao caso o painel nao tenha dados salvos
                 graficosConfigurados = [
-                    { titulo: 'Top Países 3D', sub: 'Volume Global', endpoint: '/top-paises', tipo: 'globe', cor: visualConfig.cor_primaria || '#E50914' },
+                    { titulo: 'Top Países', sub: 'Baseado nos filtros', endpoint: '/top-paises', tipo: 'bar', cor: visualConfig.cor_primaria || '#E50914' },
                     { titulo: 'Lançamentos', sub: 'Por ano', endpoint: '/lancamentos-ano', tipo: 'line', cor: visualConfig.cor_primaria || '#E50914' },
-                    { titulo: 'Distribuição', sub: 'Filmes vs Séries', endpoint: '/resumo', tipo: 'pie', cor: visualConfig.cor_primaria || '#E50914' },
-                    { titulo: 'Classificação Indicativa', sub: 'Por Rating', endpoint: '/classificacao', tipo: 'bar_horizontal', cor: visualConfig.cor_primaria || '#E50914' }
+                    { titulo: 'Distribuição', sub: 'Filmes vs Séries', endpoint: '/tipos', tipo: 'pie', cor: visualConfig.cor_primaria || '#E50914' },
+                    { titulo: 'Classificação Indicativa', sub: 'Por Rating', endpoint: '/rating', tipo: 'bar_horizontal', cor: visualConfig.cor_primaria || '#E50914' }
                 ];
             }
 
+            // Criar a estrutura HTML dos graficos caso ainda nao exista
             if (chartsContainer.children.length === 0) {
                 chartsContainer.innerHTML = graficosConfigurados.map((g, index) => {
+                    // O ultimo grafico pode ocupar duas colunas se for impar
                     const spanClass = (graficosConfigurados.length % 2 !== 0 && index === graficosConfigurados.length - 1) ? 'lg:col-span-2' : '';
+                    
                     return `
                     <div class="bg-gray-900/40 p-8 rounded-3xl border border-gray-800 opacity-0 y-50-anim ${spanClass}" id="chart-card-${index}">
                         <h3 class="text-2xl font-black mb-1 tracking-tighter">${g.titulo}</h3>
@@ -408,49 +449,76 @@
                 }).join('');
 
                 if (visualConfig.tema === 'light') {
-                    document.querySelectorAll('#graficos-dinamicos > div').forEach(card => card.classList.replace('bg-gray-900/40', 'bg-white'));
+                    document.querySelectorAll('#graficos-dinamicos > div').forEach(card => {
+                        card.classList.replace('bg-gray-900/40', 'bg-white');
+                    });
                 }
             }
 
-            for (let i = 0; i < graficosConfigurados.length; i++) {
-                const g = graficosConfigurados[i];
-                const res = await fetch(`${FLASK_API}${g.endpoint}${queryStr}`);
-                const data = await res.json();
-                
+            // Agora vamos iterar pelas configuracoes do painel para renderizar os dados dinamicamente
+            graficosConfigurados.forEach((g, index) => {
                 let labels = [];
                 let values = [];
                 let filtroAlvo = '';
-
-                if (g.tipo === 'globe' || g.endpoint.includes('paises')) {
-                    renderGlobe3D(`chart-container-${i}`, data, g.cor || '#E50914');
-                    continue;
-                }
                 
-                if (g.endpoint.includes('ano')) {
+                const ep = (g.endpoint || '').toLowerCase();
+                const tit = (g.titulo || '').toLowerCase();
+
+                // Processar dados em memoria dependendo da configuração
+                if (ep.includes('pais') || ep.includes('país') || tit.includes('pais') || tit.includes('country') || ep.includes('paises')) {
+                    filtroAlvo = 'filter-country';
+                    const contagem = {};
+                    filteredData.forEach(item => {
+                        if (item.country) {
+                            const primeiroPais = item.country.split(',')[0].trim();
+                            contagem[primeiroPais] = (contagem[primeiroPais] || 0) + 1;
+                        }
+                    });
+                    const topContagem = Object.entries(contagem).sort((a,b) => b[1] - a[1]).slice(0, 10);
+                    
+                    renderGlobe3D(`chart-container-${index}`, topContagem, g.cor || '#E50914');
+                    return;
+                } 
+                else if (ep.includes('ano') || ep.includes('year') || tit.includes('ano')) {
                     filtroAlvo = 'filter-year';
-                    labels = data.map(d => d.release_year);
-                    values = data.map(d => d.count);
-                } else if (g.endpoint.includes('resumo')) {
+                    const contagem = {};
+                    filteredData.forEach(item => {
+                        const ano = item.release_year;
+                        if (ano) contagem[ano] = (contagem[ano] || 0) + 1;
+                    });
+                    labels = Object.keys(contagem).sort((a,b) => a - b);
+                    values = labels.map(y => contagem[y]);
+                }
+                else if (ep.includes('tipo') || ep.includes('type') || tit.includes('tipo') || g.tipo === 'pie' || g.tipo === 'doughnut') {
                     filtroAlvo = 'filter-type';
+                    const moviesContagem = filteredData.filter(i => i.type === 'Movie').length;
+                    const showsContagem = filteredData.filter(i => i.type === 'TV Show').length;
                     labels = ['Movie', 'TV Show'];
-                    values = [data.Movie, data['TV Show']];
-                } else if (g.endpoint.includes('classificacao')) {
+                    values = [moviesContagem, showsContagem];
+                }
+                else {
+                    // Fallback principal para classificação / rating ou dados não mapeados
                     filtroAlvo = 'filter-rating';
-                    labels = data.map(d => d.rating);
-                    values = data.map(d => d.count);
+                    const contagem = {};
+                    filteredData.forEach(item => {
+                        if (item.rating) contagem[item.rating] = (contagem[item.rating] || 0) + 1;
+                    });
+                    const topContagem = Object.entries(contagem).sort((a,b) => b[1] - a[1]).slice(0, 10);
+                    labels = topContagem.map(p => p[0]);
+                    values = topContagem.map(p => p[1]);
                 }
 
-                renderDynamicChart(`chart-container-${i}`, g.tipo, labels, values, g.cor || '#E50914', filtroAlvo);
-            }
+                // Renderizar passando os dados, a cor do painel, o tipo de grafico e o filtro que ele aciona
+                renderDynamicChart(`chart-container-${index}`, g.tipo, labels, values, g.cor || '#E50914', filtroAlvo);
+            });
         }
 
-        async function renderGlobe3D(containerId, data, hexColor) {
+        function renderGlobe3D(containerId, topContagem, hexColor) {
             const container = document.getElementById(containerId);
             if (!container) return;
             
-            const maxVal = Math.max(...data.map(d => d.total));
+            const maxVal = Math.max(...topContagem.map(d => d[1]));
             
-            // Simulação de coordenadas aproximadas para os paises retornados
             const countryCoords = {
                 "United States": { lat: 37.09, lng: -95.71 },
                 "India": { lat: 20.59, lng: 78.96 },
@@ -465,12 +533,12 @@
                 "Australia": { lat: -25.27, lng: 133.77 }
             };
 
-            const points = data.filter(d => countryCoords[d.pais]).map(d => ({
-                lat: countryCoords[d.pais].lat,
-                lng: countryCoords[d.pais].lng,
-                size: (d.total / maxVal) * 1.5,
+            const points = topContagem.filter(d => countryCoords[d[0]]).map(d => ({
+                lat: countryCoords[d[0]].lat,
+                lng: countryCoords[d[0]].lng,
+                size: (d[1] / maxVal) * 1.5,
                 color: hexColor,
-                label: `${d.pais}: ${d.total}`
+                label: d[0] + ': ' + d[1]
             }));
 
             if (!globeInstance) {
@@ -492,10 +560,6 @@
                     
                 globeInstance.controls().autoRotate = true;
                 globeInstance.controls().autoRotateSpeed = 1.5;
-                
-                window.addEventListener('resize', () => {
-                    globeInstance.width(container.clientWidth).height(container.clientHeight);
-                });
             } else {
                 globeInstance.pointsData(points);
             }
@@ -506,14 +570,20 @@
             if (!container) return;
             
             let chart = chartInstances[containerId];
+            
             if (!chart) {
                 chart = echarts.init(container, visualConfig.tema === 'light' ? 'light' : 'dark');
                 chartInstances[containerId] = chart;
+                
+                // EVENTO POWER BI: Clique na barra/pizza preenche o select correspondente e aciona os filtros globais
                 chart.on('click', function(params) {
-                    if(filtroAlvo && params.name) aplicarFiltroPeloGrafico(filtroAlvo, params.name);
+                    if(filtroAlvo && params.name) {
+                        aplicarFiltroPeloGrafico(filtroAlvo, params.name);
+                    }
                 });
             }
 
+            // Configuracoes base do ECharts
             let option = {
                 tooltip: { trigger: (chartType === 'pie' || chartType === 'doughnut') ? 'item' : 'axis' },
                 color: [hexColor, '#444', '#777', '#aaa'],
@@ -521,6 +591,7 @@
                 grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true }
             };
 
+            // Aplicando o tipo especifico escolhido no painel
             if (chartType === 'pie' || chartType === 'doughnut') {
                 option.series = [{
                     type: 'pie',
@@ -536,8 +607,10 @@
             } else {
                 const isHorizontal = chartType === 'bar_horizontal';
                 const baseType = chartType.replace('_horizontal', '');
+
                 option.xAxis = isHorizontal ? { type: 'value' } : { type: 'category', data: labels, axisLabel: { rotate: 45, interval: 0 } };
                 option.yAxis = isHorizontal ? { type: 'category', data: labels } : { type: 'value' };
+                
                 option.series = [{ 
                     type: baseType, 
                     data: values,
@@ -548,20 +621,32 @@
                     } 
                 }];
             }
-            chart.setOption(option, true);
+
+            // Injetar dados e renderizar
+            chart.setOption(option, true); // true para limpar as series anteriores se o tipo mudar
             chart.resize();
         }
 
-        function updateTable(data) {
+        // ==================== ATUALIZAR TABELA ====================
+        function updateTable() {
             const lang = i18n[currentLang];
+            
+            // Ordenar por ano decrescente (mais recentes primeiro)
+            const sorted = [...filteredData].sort((a,b) => {
+                const anoA = parseInt(a.release_year) || 0;
+                const anoB = parseInt(b.release_year) || 0;
+                return anoB - anoA;
+            });
+            
+            const limited = sorted.slice(0, 50);
             const tbody = document.getElementById('titulos-body');
             
-            if (!data || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 font-bold text-red-500">${lang.all === 'Todos' ? 'Nenhum título localizado.' : 'No titles found.'}</td></tr>`;
+            if (limited.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 font-bold text-red-500">${lang.all === 'Todos' ? 'Nenhum título localizado com as especificações.' : 'No titles found for these specifications.'}</td></tr>`;
                 return;
             }
             
-            tbody.innerHTML = data.map(t => `
+            tbody.innerHTML = limited.map(t => `
                 <tr class="hover:bg-red-600/5 transition-colors group cursor-pointer" onclick="window.open('https://www.netflix.com/title/${(t.show_id || '').replace('s', '')}', '_blank')">
                     <td class="px-6 py-4 font-mono text-gray-600 text-xs">${t.show_id || ''}</td>
                     <td class="px-6 py-4">
@@ -577,8 +662,10 @@
             `).join('');
         }
 
+        // ==================== ATUALIZAR TEXTOS DE IDIOMA ====================
         function updateLanguageTexts() {
             const lang = i18n[currentLang];
+            
             document.getElementById('hero-title').innerText = lang.hero_title;
             document.getElementById('hero-subtitle').innerText = lang.hero_subtitle;
             document.getElementById('table-title').innerText = lang.table_title;
@@ -592,51 +679,74 @@
             document.getElementById('filter-rating-label').innerText = lang.filter_rating;
             document.getElementById('filter-type-label').innerText = lang.filter_type;
             
-            const selects = ['filter-year', 'filter-country', 'filter-rating', 'filter-type'];
+            // Atualizar opções "Todos" dos selects (manter valores atuais)
+            const selects = ['filter-year', 'filter-country', 'filter-rating'];
             selects.forEach(id => {
                 const select = document.getElementById(id);
-                if (select.options.length > 0 && select.options[0].value === '') select.options[0].text = lang.all;
+                const options = select.options;
+                if (options.length > 0 && options[0].value === '') {
+                    options[0].text = lang.all;
+                }
             });
+            
+            // Atualizar tipo (já tem opções fixas, mas traduzir)
             const typeSelect = document.getElementById('filter-type');
+            if (typeSelect.options[0].value === '') typeSelect.options[0].text = lang.all;
             if (typeSelect.options[1]) typeSelect.options[1].text = lang.movies_label === 'Filmes' ? 'Filmes' : 'Movies';
             if (typeSelect.options[2]) typeSelect.options[2].text = lang.shows_label === 'Séries de TV' ? 'Séries' : 'TV Shows';
         }
 
+        // ==================== INICIALIZAR PÁGINA ====================
         async function init() {
             gsap.registerPlugin(ScrollTrigger);
+            
+            // O processo deve ser em ordem estrita para popular corretamente
             await loadVisualConfig();
-            await populateFilters();
+            await loadAllTitles();
             
             updateLanguageTexts();
-            applyFilters();
             
+            // Adicionar eventos aos selects principais
             document.getElementById('filter-year').addEventListener('change', applyFilters);
             document.getElementById('filter-country').addEventListener('change', applyFilters);
             document.getElementById('filter-rating').addEventListener('change', applyFilters);
             document.getElementById('filter-type').addEventListener('change', applyFilters);
             
+            // Escutar redimensionamento da janela para ajustar ECharts responsivamente
             window.addEventListener('resize', () => {
-                for (let key in chartInstances) chartInstances[key].resize();
+                for (let key in chartInstances) {
+                    chartInstances[key].resize();
+                }
             });
 
+            // Animações GSAP da introdução
             const tl = gsap.timeline();
             tl.to('#curtain', { yPercent: -100, duration: 1.2, ease: "expo.inOut", delay: 0.5 })
               .to('#netflix-logo', { scale: 1, rotate: 0, opacity: 1, duration: 0.8, ease: "back.out(1.7)" }, "-=0.4")
               .to('.y-20-anim', { y: 0, opacity: 1, duration: 1, stagger: 0.2, ease: "power4.out" }, "-=0.5")
               .to('.metric-card', { scale: 1, opacity: 1, duration: 0.8, stagger: 0.1, ease: "back.out(1.2)" }, "-=0.8")
               .add(() => {
+                  // Aciona as animacoes dos graficos a medida que chegam na tela
                   document.querySelectorAll('.y-50-anim').forEach(el => {
-                      gsap.to(el, { scrollTrigger: { trigger: el, start: "top 85%" }, y: 0, opacity: 1, duration: 1.2, ease: "power3.out" });
+                      gsap.to(el, {
+                          scrollTrigger: { trigger: el, start: "top 85%" },
+                          y: 0, opacity: 1, duration: 1.2, ease: "power3.out"
+                      });
                   });
               });
         }
 
+        // ==================== TROCA DE IDIOMA ====================
         document.getElementById('lang-switch').addEventListener('click', () => {
             currentLang = currentLang === 'pt' ? 'en' : 'pt';
+            
             updateLanguageTexts();
-            applyFilters(); 
+            updateSummaryCards();   // recria os cards com os textos atualizados
+            updateTable();          // recria a tabela com os textos atualizados
+            
         });
 
+        // ==================== DISPARO DE INICIO ====================
         init();
     </script>
 </body>
